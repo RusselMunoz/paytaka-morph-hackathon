@@ -1,0 +1,19 @@
+{
+  "name": "morph-payments-starter",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm --workspace frontend run start",
+    "dev:backend": "npm --workspace backend run dev",
+    "build": "npm --workspace backend run build",
+    "db:migrate": "npm --workspace backend run prisma:migrate",
+    "db:generate": "npm --workspace backend run prisma:generate"
+  },
+  "engines": {
+    "node": ">=20.19.4"
+  }
+}

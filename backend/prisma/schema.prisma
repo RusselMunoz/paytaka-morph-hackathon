@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SENDER
+  RECIPIENT
+  MERCHANT
+  ADMIN
+}
+
+enum WalletProvider {
+  EXTERNAL
+  EMBEDDED
+  CUSTODIAL
+}
+
+enum TransactionType {
+  REMITTANCE
+  QR_PAYMENT
+  TOP_UP
+  WITHDRAWAL
+}
+
+enum TransactionStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+enum BudgetPeriod {
+  WEEKLY
+  MONTHLY
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  phone        String?       @unique
+  displayName  String
+  passwordHash String?
+  countryCode  String        @default("PH")
+  role         UserRole      @default(RECIPIENT)
+  wallets      Wallet[]
+  sent         Remittance[]  @relation("SentRemittances")
+  received     Remittance[]  @relation("ReceivedRemittances")
+  transactions Transaction[]
+  budgets      Budget[]
+  aiMessages   AiMessage[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Wallet {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address   String         @unique
+  chainId   Int            @default(2910)
+  provider  WalletProvider @default(EXTERNAL)
+  label     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([userId])
+}
+
+model Remittance {
+  id             String            @id @default(cuid())
+  senderId       String
+  recipientId    String
+  sender         User              @relation("SentRemittances", fields: [senderId], references: [id])
+  recipient      User              @relation("ReceivedRemittances", fields: [recipientId], references: [id])
+  amount         Decimal           @db.Decimal(18, 6)
+  tokenSymbol    String            @default("USDC")
+  tokenAddress   String
+  memo           String?
+  transactionId  String?           @unique
+  transaction    Transaction?      @relation(fields: [transactionId], references: [id])
+  status         TransactionStatus @default(DRAFT)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([senderId])
+  @@index([recipientId])
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  amount          Decimal           @db.Decimal(18, 6)
+  tokenSymbol     String            @default("USDC")
+  tokenAddress    String
+  fromAddress     String
+  toAddress       String
+  txHash          String?           @unique
+  chainId         Int               @default(2910)
+  merchantName    String?
+  qrPayload       String?
+  aiContext       Json?
+  remittance      Remittance?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  confirmedAt     DateTime?
+
+  @@index([userId, createdAt])
+  @@index([txHash])
+}
+
+model Budget {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  limitAmount Decimal      @db.Decimal(18, 6)
+  spentAmount Decimal      @default(0) @db.Decimal(18, 6)
+  period      BudgetPeriod @default(MONTHLY)
+  startsAt    DateTime
+  endsAt      DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+model MerchantQr {
+  id             String   @id @default(cuid())
+  merchantName   String
+  merchantCity   String?
+  provider       String
+  rawPayload     String   @unique
+  settlementRail String   @default("QRPH")
+  createdAt      DateTime @default(now())
+}
+
+model AiMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  context   Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}

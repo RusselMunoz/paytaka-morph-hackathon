@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Morph Payments Starter",
+    "slug": "morph-payments-starter",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "morphpay",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hackathon.morphpayments",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Camera access is used to scan merchant QR payment codes."
+      }
+    },
+    "android": {
+      "package": "com.hackathon.morphpayments",
+      "permissions": ["CAMERA"]
+    },
+    "plugins": [
+      "react-native-reanimated",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow this app to scan merchant QR payment codes."
+        }
+      ]
+    ]
+  }
+}
