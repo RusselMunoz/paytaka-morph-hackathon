@@ -1,4 +1,3 @@
-import { Prisma, TransactionStatus } from "@prisma/client";
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { publishRealtimeEvent } from "../lib/redis.js";
@@ -12,7 +11,7 @@ export class RemittanceService {
     fromAddress: string;
     toAddress: string;
   }) {
-    const amount = new Prisma.Decimal(input.amount);
+    const amount = input.amount;
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -56,13 +55,13 @@ export class RemittanceService {
       where: { id: input.transactionId },
       data: {
         txHash: input.txHash,
-        status: TransactionStatus.PENDING
+        status: "PENDING"
       }
     });
 
     await prisma.remittance.update({
       where: { transactionId: input.transactionId },
-      data: { status: TransactionStatus.PENDING }
+      data: { status: "PENDING" } 
     });
 
     await publishRealtimeEvent(`user:${transaction.userId}`, {

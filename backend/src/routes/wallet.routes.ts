@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { redis } from "../lib/redis.js";
 import { BlockchainService } from "../services/blockchain.service.js";
 
 export const walletRoutes: FastifyPluginAsync = async (app) => {
@@ -8,7 +9,14 @@ export const walletRoutes: FastifyPluginAsync = async (app) => {
 
   app.get("/wallets/:address/balance", async (request) => {
     const { address } = z.object({ address: z.string() }).parse(request.params);
-    return blockchain.getUsdcBalance(address);
+
+    const cacheKey = `balance:${address}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const balance = await blockchain.getUsdcBalance(address);
+    await redis.set(cacheKey, JSON.stringify(balance), "EX", 30);
+    return balance;
   });
 
   app.post("/wallets", { preHandler: [app.authenticate] }, async (request) => {
