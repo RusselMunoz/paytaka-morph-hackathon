@@ -1,31 +1,43 @@
 {
   "expo": {
-    "name": "Morph Payments Starter",
-    "slug": "morph-payments-starter",
-    "version": "0.1.0",
+    "name": "Paytaka",
+    "slug": "Paytaka-frontEnd",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "morphpay",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.hackathon.morphpayments",
-      "infoPlist": {
-        "NSCameraUsageDescription": "Camera access is used to scan merchant QR payment codes."
-      }
-    },
-    "android": {
-      "package": "com.hackathon.morphpayments",
-      "permissions": ["CAMERA"]
-    },
     "plugins": [
-      "react-native-reanimated",
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow this app to scan merchant QR payment codes."
+          "cameraPermission": "Allow Paytaka to access your camera"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Paytaka to access your photos"
         }
       ]
-    ]
+    ],
+    "icon": "./assets/Logo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/Logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/Logo.png"
+    }
   }
 }
