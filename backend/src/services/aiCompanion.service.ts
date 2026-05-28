@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import OpenAI from "openai";
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
@@ -18,7 +17,7 @@ export class AiCompanionService {
         userId: input.userId,
         role: "user",
         content: input.message,
-        context: (input.context ?? {}) as Prisma.InputJsonValue
+        context: (input.context ?? {}) as object
       }
     });
 
@@ -57,7 +56,7 @@ export class AiCompanionService {
         userId,
         role: "assistant",
         content,
-        context: (context ?? {}) as Prisma.InputJsonValue
+        context: (context ?? {}) as object
       }
     });
 

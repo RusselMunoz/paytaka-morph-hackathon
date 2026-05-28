@@ -11,7 +11,8 @@ export class AuthService {
     password: string;
     displayName: string;
     phone?: string;
-    role?: "SENDER" | "RECIPIENT" | "MERCHANT";
+    walletAddress?: string;
+    role?: "SENDER" | "RECIPIENT" | "MERCHANT" | "ADMIN";
   }) {
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
     if (existing) {
@@ -24,15 +25,28 @@ export class AuthService {
         displayName: input.displayName,
         phone: input.phone,
         role: input.role ?? "RECIPIENT",
-        passwordHash: await bcrypt.hash(input.password, 12)
-      }
+        passwordHash: await bcrypt.hash(input.password, 12),
+        // Create wallet record if address provided
+        wallets: input.walletAddress ? {
+          create: {
+            address: input.walletAddress,
+            chainId: 2910,
+            provider: "EXTERNAL"
+          }
+        } : undefined
+      },
+      include: { wallets: true }
     });
 
     return this.withToken(user);
   }
 
   async login(input: { email: string; password: string }) {
-    const user = await prisma.user.findUnique({ where: { email: input.email } });
+    const user = await prisma.user.findUnique({
+      where: { email: input.email },
+      include: { wallets: true }
+    });
+
     if (!user?.passwordHash) {
       throw new AppError("Invalid email or password", 401, "INVALID_LOGIN");
     }
@@ -45,7 +59,33 @@ export class AuthService {
     return this.withToken(user);
   }
 
-  private withToken(user: { id: string; email: string; role: string; displayName: string }) {
+  // Add this — for linking a wallet after registration
+  async linkWallet(userId: string, walletAddress: string, label?: string) {
+    const existing = await prisma.wallet.findUnique({ where: { address: walletAddress } });
+    if (existing) {
+      throw new AppError("Wallet already linked to an account", 409, "WALLET_EXISTS");
+    }
+
+    const wallet = await prisma.wallet.create({
+      data: {
+        userId,
+        address: walletAddress,
+        chainId: 2910,
+        provider: "EXTERNAL",
+        label
+      }
+    });
+
+    return wallet;
+  }
+
+  private withToken(user: {
+    id: string;
+    email: string;
+    role: string;
+    displayName: string;
+    wallets?: { address: string; chainId: number; provider: string }[];
+  }) {
     const token = this.app.jwt.sign({
       id: user.id,
       email: user.email,
@@ -58,7 +98,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
-        displayName: user.displayName
+        displayName: user.displayName,
+        wallets: user.wallets ?? []
       }
     };
   }

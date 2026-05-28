@@ -16,7 +16,7 @@ export class BudgetService {
         userId: input.userId,
         name: input.name,
         category: input.category,
-        limitAmount: new Prisma.Decimal(input.limitAmount),
+        limitAmount: input.limitAmount,
         startsAt: new Date(input.startsAt),
         endsAt: new Date(input.endsAt),
         period: input.period ?? "MONTHLY"
