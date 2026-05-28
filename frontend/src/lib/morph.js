@@ -28,3 +28,9 @@ export const shortAddress = (address) => {
 
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
+
+export const formatDatePretty = (date) => {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};

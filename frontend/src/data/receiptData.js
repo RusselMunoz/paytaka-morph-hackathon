@@ -1,16 +1,16 @@
 export const receiptPlaceholder = {
-  statusTitle: 'Payment Successful!',
-  recipientInitials: 'MI',
-  recipientName: 'Mang Inasal',
-  recipientSubtext: 'SM Dasma City Branch',
-  amountPaid: '₱120.00',
-  paidUsing: '$2.07 USDC',
-  exchangeRate: '₱58.00 / $1',
-  paymentMethod: 'QR Code (GCash)',
-  dateTime: 'May 22, 2026 • 2:14 PM',
-  transactionHash: '0x8f3a...9k2m',
-  remainingBalance: '$4,450.23 USDC',
-  footerNote: 'Payment processed instantly on Morph L2 • Low fees • Fast settlement • Secure blockchain',
+  statusTitle: 'Awaiting Backend Receipt',
+  recipientInitials: '--',
+  recipientName: 'No transaction selected',
+  recipientSubtext: 'Create or select a remittance to view the receipt',
+  amountPaid: '--',
+  paidUsing: 'USDC',
+  exchangeRate: '--',
+  paymentMethod: 'Pending',
+  dateTime: '--',
+  transactionHash: '--',
+  remainingBalance: '--',
+  footerNote: 'Receipt content is now driven by backend remittance and transaction data.',
 };
 
 export const receiptActions = {

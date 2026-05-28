@@ -9,88 +9,96 @@ import ReceiptScreen from '../screens/ReceiptScreen';
 import ScreenTransition from '../components/ScreenTransition';
 
 export default function AppNavigator() {
-  const [activeScreen, setActiveScreen] = useState('landing');
+  const [activeScreen, setActiveScreen] = useState({ name: 'landing', params: {} });
 
-  if (activeScreen === 'wallet') {
+  const openScreen = (name, params = {}) => {
+    setActiveScreen({ name, params });
+  };
+
+  if (activeScreen.name === 'wallet') {
     return (
-      <ScreenTransition screenKey={activeScreen}>
+      <ScreenTransition screenKey={activeScreen.name}>
         <WalletScreen
-          onBackToLanding={() => setActiveScreen('landing')}
-          onOpenChatbot={() => setActiveScreen('chatbot')}
-          onOpenHistory={() => setActiveScreen('history')}
-          onOpenRemit={() => setActiveScreen('remit')}
-          onOpenScanner={() => setActiveScreen('scanner')}
+          onBackToLanding={() => openScreen('landing')}
+          onOpenChatbot={() => openScreen('chatbot')}
+          onOpenHistory={() => openScreen('history')}
+          onOpenRemit={(prefill) => openScreen('remit', { prefill })}
+          onOpenScanner={() => openScreen('scanner')}
+          onOpenReceipt={(remittance) => openScreen('receipt', { remittance })}
         />
       </ScreenTransition>
     );
   }
 
-  if (activeScreen === 'chatbot') {
+  if (activeScreen.name === 'chatbot') {
     return (
-      <ScreenTransition screenKey={activeScreen}>
+      <ScreenTransition screenKey={activeScreen.name}>
         <ChatbotScreen
-          onBackToWallet={() => setActiveScreen('wallet')}
-          onBackToLanding={() => setActiveScreen('landing')}
+          onBackToWallet={() => openScreen('wallet')}
+          onBackToLanding={() => openScreen('landing')}
         />
       </ScreenTransition>
     );
   }
 
-  if (activeScreen === 'remit') {
+  if (activeScreen.name === 'remit') {
     return (
-      <ScreenTransition screenKey={activeScreen}>
+      <ScreenTransition screenKey={activeScreen.name}>
         <RemitScreen
-          onBackToWallet={() => setActiveScreen('wallet')}
-          onBackToLanding={() => setActiveScreen('landing')}
-          onOpenHistory={() => setActiveScreen('history')}
-          onOpenScanner={() => setActiveScreen('scanner')}
-          onOpenReceipt={() => setActiveScreen('receipt')}
+          prefill={activeScreen.params.prefill}
+          onBackToWallet={() => openScreen('wallet')}
+          onBackToLanding={() => openScreen('landing')}
+          onOpenHistory={() => openScreen('history')}
+          onOpenScanner={() => openScreen('scanner')}
+          onOpenReceipt={(remittance) => openScreen('receipt', { remittance })}
         />
       </ScreenTransition>
     );
   }
 
-  if (activeScreen === 'receipt') {
+  if (activeScreen.name === 'receipt') {
     return (
-      <ScreenTransition screenKey={activeScreen}>
+      <ScreenTransition screenKey={activeScreen.name}>
         <ReceiptScreen
-          onBackToWallet={() => setActiveScreen('wallet')}
-          onBackToLanding={() => setActiveScreen('landing')}
-          onOpenHistory={() => setActiveScreen('history')}
+          remittance={activeScreen.params.remittance}
+          onBackToWallet={() => openScreen('wallet')}
+          onBackToLanding={() => openScreen('landing')}
+          onOpenHistory={() => openScreen('history')}
         />
       </ScreenTransition>
     );
   }
 
-  if (activeScreen === 'scanner') {
+  if (activeScreen.name === 'scanner') {
     return (
-      <ScreenTransition screenKey={activeScreen}>
+      <ScreenTransition screenKey={activeScreen.name}>
         <ScannerScreen
-          onBackToWallet={() => setActiveScreen('wallet')}
-          onBackToLanding={() => setActiveScreen('landing')}
-          onOpenHistory={() => setActiveScreen('history')}
-          onOpenRemit={() => setActiveScreen('remit')}
+          onBackToWallet={() => openScreen('wallet')}
+          onBackToLanding={() => openScreen('landing')}
+          onOpenHistory={() => openScreen('history')}
+          onOpenRemit={(prefill) => openScreen('remit', { prefill })}
         />
       </ScreenTransition>
     );
   }
 
-  if (activeScreen === 'history') {
+  if (activeScreen.name === 'history') {
     return (
-      <ScreenTransition screenKey={activeScreen}>
+      <ScreenTransition screenKey={activeScreen.name}>
         <HistoryScreen
-          onBackToWallet={() => setActiveScreen('wallet')}
-          onBackToLanding={() => setActiveScreen('landing')}
-          onOpenRemit={() => setActiveScreen('remit')}
-          onOpenScanner={() => setActiveScreen('scanner')}
+          onBackToWallet={() => openScreen('wallet')}
+          onBackToLanding={() => openScreen('landing')}
+          onOpenRemit={(prefill) => openScreen('remit', { prefill })}
+          onOpenScanner={() => openScreen('scanner')}
+          onOpenReceipt={(remittance) => openScreen('receipt', { remittance })}
         />
       </ScreenTransition>
     );
   }
 
   return (
-    <ScreenTransition screenKey={activeScreen}>
-      <LandingScreen onAuthenticated={() => setActiveScreen('wallet')} />
+    <ScreenTransition screenKey={activeScreen.name}>
+      <LandingScreen onAuthenticated={() => openScreen('wallet')} />
     </ScreenTransition>
   );
 }

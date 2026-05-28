@@ -1,19 +1,63 @@
 import { StatusBar } from 'expo-status-bar';
-import { Image as RNImage, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { Alert, Image as RNImage, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
 import GlassBox from '../components/GlassBox';
-import { walletAssets } from '../data/walletAssets';
 import TabIcon from '../components/TabIcon';
 import { walletStyles } from '../styles/walletStyles';
 import { useAuth, useWallet } from '../contexts';
 import { shortAddress } from '../lib/morph';
+import { useEffect, useMemo, useState } from 'react';
 
 const bottomTabs = ['Wallet', 'Remit', 'Scanner', 'History'];
 
 export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHistory, onOpenRemit, onOpenScanner }) {
-  const { user } = useAuth();
-  const { address, balance } = useWallet();
+  const { user, isAuthenticated } = useAuth();
+  const { address, balance, connectWithAddress, refreshBalance, isLoadingBalance } = useWallet();
+  const [addressInput, setAddressInput] = useState(address ?? '');
+  const [loadError, setLoadError] = useState('');
   const displayName = user?.displayName ?? 'User';
-  const totalBalance = balance?.formatted ? `$ ${Number(balance.formatted).toLocaleString()}` : '$ 4,797.45';
+  const totalBalance = balance?.formatted ? `$ ${Number(balance.formatted).toLocaleString()}` : '$ 0.00';
+
+  useEffect(() => {
+    if (address) {
+      setAddressInput(address);
+    }
+  }, [address]);
+
+  useEffect(() => {
+    if (address) {
+      refreshBalance(address).catch((error) => setLoadError(error?.message ?? 'Could not refresh balance'));
+    }
+  }, [address, refreshBalance]);
+
+  const quickAssets = useMemo(
+    () => [
+      {
+        symbol: balance?.tokenSymbol ?? 'USDC',
+        name: 'USD Coin',
+        balance: balance?.formatted ? `$${Number(balance.formatted).toLocaleString()}` : 'No balance loaded',
+        tone: 'blue',
+      },
+    ],
+    [balance]
+  );
+
+  const loadWallet = async () => {
+    const trimmed = addressInput.trim();
+
+    if (!trimmed) {
+      Alert.alert('Enter a wallet address', 'The backend balance route needs a wallet address to load balance data.');
+      return;
+    }
+
+    try {
+      setLoadError('');
+      await connectWithAddress(trimmed, { syncToBackend: isAuthenticated });
+      await refreshBalance(trimmed);
+    } catch (error) {
+      setLoadError(error?.message ?? 'Could not load wallet');
+      Alert.alert('Wallet load failed', error?.message ?? 'Could not load wallet');
+    }
+  };
 
   const renderBottomNav = () => (
     <View style={walletStyles.bottomNav}>
@@ -67,9 +111,30 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
         <GlassBox style={walletStyles.balanceCard} contentStyle={walletStyles.balanceCardContent} vectorHeight={112}>
           <Text style={walletStyles.cardLabel}>{address ? shortAddress(address) : 'Total Balance (USD)'}</Text>
           <Text style={walletStyles.balanceValue}>{totalBalance}</Text>
-          <Text style={walletStyles.balanceDelta}>
-            {balance?.tokenSymbol ? `${balance.tokenSymbol} from backend` : '+$37.12 (+0.78%)  ₱270,250 PHP'}
-          </Text>
+          <Text style={walletStyles.balanceDelta}>{balance?.tokenSymbol ? `${balance.tokenSymbol} balance from backend` : 'Load a wallet address to fetch balance'}</Text>
+
+          <View style={{ marginTop: 12 }}>
+            <Text style={{ color: 'rgba(234,232,241,0.75)', marginBottom: 8 }}>Wallet address</Text>
+            <TextInput
+              value={addressInput}
+              onChangeText={setAddressInput}
+              placeholder="0x..."
+              placeholderTextColor="rgba(255,255,255,0.34)"
+              autoCapitalize="none"
+              style={{
+                borderRadius: 18,
+                backgroundColor: 'rgba(255,255,255,0.10)',
+                color: '#fff',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                marginBottom: 10,
+              }}
+            />
+            <Pressable style={walletStyles.actionButtonPrimary} onPress={loadWallet}>
+              <Text style={walletStyles.actionButtonText}>{isLoadingBalance ? 'Loading...' : 'Load from Backend'}</Text>
+            </Pressable>
+            {loadError ? <Text style={{ color: '#f7d3d3', marginTop: 10 }}>{loadError}</Text> : null}
+          </View>
 
           <View style={walletStyles.actionRow}>
             <Pressable style={walletStyles.actionButtonPrimary}>
@@ -102,7 +167,7 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
         <GlassBox style={walletStyles.assetsCard} contentStyle={walletStyles.assetsCardContent} vectorHeight={104}>
           <Text style={walletStyles.assetsTitle}>QUICK ASSETS</Text>
 
-          {walletAssets.map((asset) => (
+          {quickAssets.map((asset) => (
             <View key={asset.symbol} style={walletStyles.assetRow}>
               <View style={walletStyles.assetIdentity}>
                 <View style={[walletStyles.assetBadge, asset.tone === 'blue' ? walletStyles.assetBadgeBlue : walletStyles.assetBadgeTeal]}>

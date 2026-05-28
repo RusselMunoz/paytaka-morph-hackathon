@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Alert, Image, Linking, Pressable, SafeAreaView, Text, View } from 'react-native';
+import { Alert, ActivityIndicator, Image, Linking, Pressable, SafeAreaView, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
 import TabIcon from '../components/TabIcon';
 import { scannerStyles } from '../styles/scannerStyles';
+import { qrApi } from '../lib/api';
 
 const bottomTabs = ['Wallet', 'Remit', 'Scanner', 'History'];
 
@@ -12,6 +13,9 @@ export default function ScannerScreen({ onBackToWallet, onBackToLanding, onOpenH
   const [scannedData, setScannedData] = useState('');
   const [hasScanned, setHasScanned] = useState(false);
   const [activeTab, setActiveTab] = useState('scanner');
+  const [parsedQr, setParsedQr] = useState(null);
+  const [isParsing, setIsParsing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const canScan = Boolean(permission?.granted) && !hasScanned;
   const scanMessage = useMemo(() => {
@@ -22,13 +26,34 @@ export default function ScannerScreen({ onBackToWallet, onBackToLanding, onOpenH
     return scannedData;
   }, [scannedData]);
 
-  const handleBarcodeScanned = ({ data, type }) => {
+  const openRemitFromQr = (payload) => {
+    onOpenRemit?.(payload);
+  };
+
+  const parseWithBackend = async (data) => {
+    setIsParsing(true);
+    setErrorMessage('');
+
+    try {
+      const parsed = await qrApi.parse(String(data));
+      setParsedQr(parsed);
+      return parsed;
+    } catch (error) {
+      setErrorMessage(error?.message ?? 'Could not parse QR payload');
+      return null;
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleBarcodeScanned = async ({ data, type }) => {
     if (hasScanned) {
       return;
     }
 
     setHasScanned(true);
     setScannedData(`${type.toUpperCase()}: ${data}`);
+    await parseWithBackend(data);
 
     if (typeof data === 'string' && /^https?:\/\//i.test(data)) {
       Linking.openURL(data).catch(() => {});
@@ -69,6 +94,7 @@ export default function ScannerScreen({ onBackToWallet, onBackToLanding, onOpenH
       const value = `${firstResult.type.toUpperCase()}: ${firstResult.data}`;
       setScannedData(value);
       setHasScanned(true);
+      await parseWithBackend(firstResult.data);
 
       if (typeof firstResult.data === 'string' && /^https?:\/\//i.test(firstResult.data)) {
         Linking.openURL(firstResult.data).catch(() => {});
@@ -144,6 +170,14 @@ export default function ScannerScreen({ onBackToWallet, onBackToLanding, onOpenH
         <Text style={scannerStyles.subtitle}>{scanMessage}</Text>
       </View>
 
+      {isParsing ? (
+        <View style={{ paddingBottom: 10 }}>
+          <ActivityIndicator size="small" color="#fff" />
+        </View>
+      ) : null}
+
+      {errorMessage ? <Text style={{ color: '#f7d3d3', textAlign: 'center', marginBottom: 8 }}>{errorMessage}</Text> : null}
+
       <View style={scannerStyles.scanFrameOuter}>
         {permission.granted && canScan ? (
           <CameraView
@@ -172,6 +206,29 @@ export default function ScannerScreen({ onBackToWallet, onBackToLanding, onOpenH
         <View style={scannerStyles.resultCard}>
           <Text style={scannerStyles.resultLabel}>SCANNED RESULT</Text>
           <Text style={scannerStyles.resultValue}>{scannedData}</Text>
+          {parsedQr ? (
+            <View style={{ marginTop: 10 }}>
+              <Text style={scannerStyles.resultLabel}>BACKEND PARSED</Text>
+              <Text style={scannerStyles.resultValue}>Provider: {parsedQr.provider}</Text>
+              {parsedQr.merchantName ? <Text style={scannerStyles.resultValue}>Merchant: {parsedQr.merchantName}</Text> : null}
+              {parsedQr.amount ? <Text style={scannerStyles.resultValue}>Amount: {parsedQr.amount}</Text> : null}
+              {parsedQr.reference ? <Text style={scannerStyles.resultValue}>Reference: {parsedQr.reference}</Text> : null}
+              <Pressable
+                style={scannerStyles.resultButton}
+                onPress={() =>
+                  openRemitFromQr({
+                    recipientId: parsedQr.merchantName ?? '',
+                    recipientName: parsedQr.merchantName ?? '',
+                    amount: parsedQr.amount ?? '',
+                    memo: parsedQr.reference ?? '',
+                    rawPayload: parsedQr.rawPayload,
+                  })
+                }
+              >
+                <Text style={scannerStyles.resultButtonText}>Use in Remit</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <Pressable style={scannerStyles.resultButton} onPress={resetScanner}>
             <Text style={scannerStyles.resultButtonText}>Scan Again</Text>
           </Pressable>
