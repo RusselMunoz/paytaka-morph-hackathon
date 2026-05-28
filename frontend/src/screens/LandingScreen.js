@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Image, useWindowDimensions } from 'react-native';
-import { SafeAreaView, View, Text, Pressable } from 'react-native';
+import { Image, useWindowDimensions, View, Text, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { landingStyles } from '../styles/landingStyles';
 import BrandMark from '../components/BrandMark';
-import AuthSheet from '../components/AuthSheet';
+import BackgroundGradient from '../components/BackgroundGradient';
 
 const buttons = [
   { label: 'Create Wallet', variant: 'primary' },
@@ -16,6 +16,11 @@ export default function LandingScreen({ onAuthenticated }) {
   const { width } = useWindowDimensions();
   const isCompact = width < 390;
   const markSize = isCompact ? 170 : 210;
+
+  // For demo build: bypass auth and go directly to wallet
+  const handleButtonPress = () => {
+    onAuthenticated?.();
+  };
 
   const openSheet = (mode) => {
     setSheet({ mode, isOpen: true });
@@ -43,10 +48,20 @@ export default function LandingScreen({ onAuthenticated }) {
   };
 
   return (
-    <SafeAreaView style={landingStyles.safeArea}>
+    <SafeAreaView style={landingStyles.safeArea} edges={['top']}>
       <StatusBar style="light" />
 
+      <BackgroundGradient />
       <Image source={require('../../assets/Vector.png')} style={landingStyles.vectorTopLeft} />
+      
+      {/* Decorative elements */}
+      <View style={[landingStyles.floatingSquare, landingStyles.floatingSquareTopLeft, { width: 32, height: 32 }]} />
+      <View style={[landingStyles.floatingSquare, landingStyles.floatingSquareTopRight, { width: 28, height: 28 }]} />
+      <View style={[landingStyles.floatingSquare, landingStyles.floatingSquareBottomRight, { width: 36, height: 36 }]} />
+      <View style={landingStyles.curvedLineLeft} />
+      <View style={landingStyles.curvedLineRight} />
+      <View style={landingStyles.bottomRightGlow} />
+      
       <View style={landingStyles.frame}>
         <View style={landingStyles.header}>
           <Image
@@ -65,7 +80,7 @@ export default function LandingScreen({ onAuthenticated }) {
             {buttons.map((button) => (
               <Pressable
                 key={button.label}
-                onPress={() => openSheet(button.variant === 'primary' ? 'signup' : 'login')}
+                onPress={handleButtonPress}
                 style={({ pressed }) => [
                   landingStyles.buttonBase,
                   button.variant === 'primary'
@@ -87,20 +102,12 @@ export default function LandingScreen({ onAuthenticated }) {
           </View>
 
           <Text style={landingStyles.legalText}>
-            By continuing you agree to {' '}
-            <Text style={landingStyles.legalLink}>Privacy Policy</Text> and {' '}
+            By continuing you agree to --'s{' '}
+            <Text style={landingStyles.legalLink}>Privacy Policy</Text> and{' '}
             <Text style={landingStyles.legalLink}>User Agreement</Text>
           </Text>
         </View>
       </View>
-
-      <AuthSheet
-        sheet={sheet}
-        onRequestClose={requestCloseSheet}
-        onDismiss={dismissSheet}
-        onSwitchMode={switchSheetMode}
-        onAuthenticated={onAuthenticated}
-      />
     </SafeAreaView>
   );
 }

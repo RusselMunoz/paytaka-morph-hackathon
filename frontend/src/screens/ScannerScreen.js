@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Alert, ActivityIndicator, Image, Linking, Pressable, SafeAreaView, Text, View } from 'react-native';
+import { Alert, ActivityIndicator, Image, Linking, Pressable, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
 import TabIcon from '../components/TabIcon';
+import BackgroundGradient from '../components/BackgroundGradient';
 import { scannerStyles } from '../styles/scannerStyles';
 import { qrApi } from '../lib/api';
 
@@ -142,7 +144,8 @@ export default function ScannerScreen({ onBackToWallet, onBackToLanding, onOpenH
 
   if (!permission) {
     return (
-      <SafeAreaView style={scannerStyles.safeArea}>
+      <SafeAreaView style={scannerStyles.safeArea} edges={['top']}>
+        <BackgroundGradient />
         <View style={scannerStyles.permissionCard}>
           <Text style={scannerStyles.permissionText}>Loading camera permission...</Text>
         </View>
@@ -151,17 +154,18 @@ export default function ScannerScreen({ onBackToWallet, onBackToLanding, onOpenH
   }
 
   return (
-    <SafeAreaView style={scannerStyles.safeArea}>
+    <SafeAreaView style={scannerStyles.safeArea} edges={['top']}>
+      <BackgroundGradient />
       <Image source={require('../../assets/Vector.png')} style={scannerStyles.vectorTopLeft} />
 
       <View style={scannerStyles.headerRow}>
         <Pressable style={scannerStyles.iconButton} onPress={onBackToWallet ?? onBackToLanding}>
-          <Text style={scannerStyles.menuIcon}>≡</Text>
+          <Text style={scannerStyles.menuIcon}>☰</Text>
         </Pressable>
 
-        <View style={scannerStyles.avatarMark}>
-          <Text style={scannerStyles.avatarLetter}>u</Text>
-        </View>
+        <Pressable style={scannerStyles.avatarMark} onPress={onBackToLanding}>
+          <Text style={scannerStyles.avatarLetter}>U</Text>
+        </Pressable>
       </View>
 
       <View style={scannerStyles.titleWrap}>

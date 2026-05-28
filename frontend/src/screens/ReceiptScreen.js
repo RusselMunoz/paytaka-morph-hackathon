@@ -1,6 +1,8 @@
-import { ActivityIndicator, Image, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { receiptActions, receiptPlaceholder } from '../data/receiptData';
 import { receiptStyles } from '../styles/receiptStyles';
+import BackgroundGradient from '../components/BackgroundGradient';
 import { useCallback, useEffect, useState } from 'react';
 import { remittanceApi } from '../lib/api';
 import { formatDatePretty, shortAddress } from '../lib/morph';
@@ -48,7 +50,9 @@ export default function ReceiptScreen({ onBackToWallet, onBackToLanding, onOpenH
   const hasBackendReceipt = Boolean(receipt);
 
   return (
-    <SafeAreaView style={receiptStyles.safeArea}>
+    <SafeAreaView style={receiptStyles.safeArea} edges={['top']}>
+      <BackgroundGradient />
+      <Image source={require('../../assets/Vector.png')} style={receiptStyles.vectorTopLeft} />
       <ScrollView contentContainerStyle={receiptStyles.content} showsVerticalScrollIndicator={false}>
         {loading && (
           <View style={{ padding: 24 }}>

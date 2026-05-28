@@ -300,11 +300,18 @@ export const walletStyles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     marginTop: 4,
+  },
+  phpEquivalent: {
+    color: 'rgba(255,255,255,0.50)',
+    fontSize: 8,
+    fontWeight: '600',
+    marginTop: 2,
     marginBottom: 10,
   },
   actionRow: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 4,
   },
   actionButtonPrimary: {
     flex: 1,
@@ -356,11 +363,16 @@ export const walletStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
+    overflow: 'hidden',
   },
   insightAvatarText: {
     color: '#FFD9FF',
     fontSize: 18,
     lineHeight: 18,
+  },
+  takaAvatarIcon: {
+    width: 32,
+    height: 32,
   },
   insightBody: {
     flex: 1,
@@ -472,16 +484,16 @@ export const walletStyles = StyleSheet.create({
   },
   floatingBot: {
     position: 'absolute',
-    right: 28,
-    bottom: 84,
-    width: 58,
-    height: 58,
+    right: 16,
+    bottom: 80,
+    width: 70,
+    height: 70,
     alignItems: 'center',
     justifyContent: 'center',
   },
   floatingBotIcon: {
-    width: 58,
-    height: 58,
+    width: 70,
+    height: 70,
   },
   notificationDot: {
     position: 'absolute',

@@ -33,7 +33,7 @@ export const remittanceRoutes: FastifyPluginAsync = async (app) => {
 
     // Mark as submitted with the real txHash
     const result = await remittances.markSubmitted({
-      transactionId: draft.transaction.id,
+      transactionId: draft.transaction!.id,
       txHash: receipt.txHash
     });
 

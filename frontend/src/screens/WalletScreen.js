@@ -1,7 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
-import { Alert, Image as RNImage, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
+import { Image as RNImage, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassBox from '../components/GlassBox';
 import TabIcon from '../components/TabIcon';
+import BackgroundGradient from '../components/BackgroundGradient';
+import SettingsDrawer from '../components/SettingsDrawer';
 import { walletStyles } from '../styles/walletStyles';
 import { useAuth, useWallet } from '../contexts';
 import { shortAddress } from '../lib/morph';
@@ -9,55 +12,69 @@ import { useEffect, useMemo, useState } from 'react';
 
 const bottomTabs = ['Wallet', 'Remit', 'Scanner', 'History'];
 
-export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHistory, onOpenRemit, onOpenScanner }) {
-  const { user, isAuthenticated } = useAuth();
-  const { address, balance, connectWithAddress, refreshBalance, isLoadingBalance } = useWallet();
-  const [addressInput, setAddressInput] = useState(address ?? '');
-  const [loadError, setLoadError] = useState('');
+// Demo wallet address
+const DEMO_WALLET_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+
+export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHistory, onOpenRemit, onOpenScanner, onOpenAddFunds }) {
+  const { user, isAuthenticated, logout } = useAuth();
+  const {
+    address,
+    balance,
+    connectWithAddress,
+    usdcBalance,
+    usdtBalance,
+    usdPhpRate,
+    balanceChange,
+    balanceChangePercent,
+    isLoadingBalance
+  } = useWallet();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const displayName = user?.displayName ?? 'User';
-  const totalBalance = balance?.formatted ? `$ ${Number(balance.formatted).toLocaleString()}` : '$ 0.00';
+  
+  const handleSignOut = () => {
+    logout();
+    onBackToLanding?.();
+  };
 
+  const toggleSettings = () => {
+    setIsSettingsOpen(!isSettingsOpen);
+  };
+  
+  // Calculate balance values from real blockchain data
+  const balanceValue = balance?.formatted ? Number(balance.formatted) : 0;
+  const totalBalance = `$${balanceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const phpBalance = (balanceValue * usdPhpRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Auto-connect demo wallet if no address is set
   useEffect(() => {
-    if (address) {
-      setAddressInput(address);
+    if (!address && isAuthenticated) {
+      connectWithAddress(DEMO_WALLET_ADDRESS, { syncToBackend: true })
+        .catch(() => {
+          // Silent fail for demo - use mock data
+        });
     }
-  }, [address]);
+  }, [address, isAuthenticated, connectWithAddress]);
 
-  useEffect(() => {
-    if (address) {
-      refreshBalance(address).catch((error) => setLoadError(error?.message ?? 'Could not refresh balance'));
-    }
-  }, [address, refreshBalance]);
-
-  const quickAssets = useMemo(
-    () => [
+  // Quick assets with real blockchain data
+  const quickAssets = useMemo(() => {
+    return [
       {
-        symbol: balance?.tokenSymbol ?? 'USDC',
+        symbol: 'USDC',
         name: 'USD Coin',
-        balance: balance?.formatted ? `$${Number(balance.formatted).toLocaleString()}` : 'No balance loaded',
+        balance: `$${usdcBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         tone: 'blue',
       },
-    ],
-    [balance]
-  );
+      {
+        symbol: 'USDT',
+        name: 'Tether',
+        balance: `$${usdtBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        tone: 'teal',
+      },
+    ];
+  }, [usdcBalance, usdtBalance]);
 
-  const loadWallet = async () => {
-    const trimmed = addressInput.trim();
-
-    if (!trimmed) {
-      Alert.alert('Enter a wallet address', 'The backend balance route needs a wallet address to load balance data.');
-      return;
-    }
-
-    try {
-      setLoadError('');
-      await connectWithAddress(trimmed, { syncToBackend: isAuthenticated });
-      await refreshBalance(trimmed);
-    } catch (error) {
-      setLoadError(error?.message ?? 'Could not load wallet');
-      Alert.alert('Wallet load failed', error?.message ?? 'Could not load wallet');
-    }
-  };
+  // Hardcoded AI insight message - always visible
+  const aiInsightMessage = "Hi! I'm Taka, your financial companion. Ask me anything about your balance, spending, or next move.";
 
   const renderBottomNav = () => (
     <View style={walletStyles.bottomNav}>
@@ -87,20 +104,21 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
   );
 
   return (
-    <SafeAreaView style={walletStyles.safeArea}>
+    <SafeAreaView style={walletStyles.safeArea} edges={['top']}>
       <StatusBar style="light" />
 
+      <BackgroundGradient />
       <RNImage source={require('../../assets/Vector.png')} style={walletStyles.vectorTopLeft} />
 
       <ScrollView contentContainerStyle={walletStyles.content} showsVerticalScrollIndicator={false}>
         <View style={walletStyles.headerRow}>
-          <Pressable style={walletStyles.iconButton} onPress={onBackToLanding}>
-            <Text style={walletStyles.menuIcon}>≡</Text>
+          <Pressable style={walletStyles.iconButton} onPress={toggleSettings}>
+            <Text style={walletStyles.menuIcon}>☰</Text>
           </Pressable>
 
-          <View style={walletStyles.avatarMark}>
-            <Text style={walletStyles.avatarLetter}>{displayName.charAt(0).toLowerCase()}</Text>
-          </View>
+          <Pressable style={walletStyles.avatarMark} onPress={toggleSettings}>
+            <Text style={walletStyles.avatarLetter}>{displayName.charAt(0).toUpperCase()}</Text>
+          </Pressable>
         </View>
 
         <View style={walletStyles.greetingBlock}>
@@ -111,33 +129,15 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
         <GlassBox style={walletStyles.balanceCard} contentStyle={walletStyles.balanceCardContent} vectorHeight={112}>
           <Text style={walletStyles.cardLabel}>{address ? shortAddress(address) : 'Total Balance (USD)'}</Text>
           <Text style={walletStyles.balanceValue}>{totalBalance}</Text>
-          <Text style={walletStyles.balanceDelta}>{balance?.tokenSymbol ? `${balance.tokenSymbol} balance from backend` : 'Load a wallet address to fetch balance'}</Text>
-
-          <View style={{ marginTop: 12 }}>
-            <Text style={{ color: 'rgba(234,232,241,0.75)', marginBottom: 8 }}>Wallet address</Text>
-            <TextInput
-              value={addressInput}
-              onChangeText={setAddressInput}
-              placeholder="0x..."
-              placeholderTextColor="rgba(255,255,255,0.34)"
-              autoCapitalize="none"
-              style={{
-                borderRadius: 18,
-                backgroundColor: 'rgba(255,255,255,0.10)',
-                color: '#fff',
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-                marginBottom: 10,
-              }}
-            />
-            <Pressable style={walletStyles.actionButtonPrimary} onPress={loadWallet}>
-              <Text style={walletStyles.actionButtonText}>{isLoadingBalance ? 'Loading...' : 'Load from Backend'}</Text>
-            </Pressable>
-            {loadError ? <Text style={{ color: '#f7d3d3', marginTop: 10 }}>{loadError}</Text> : null}
-          </View>
+          <Text style={walletStyles.balanceDelta}>
+            +${balanceChange.toFixed(2)} (+{balanceChangePercent.toFixed(2)}%)
+          </Text>
+          <Text style={walletStyles.phpEquivalent}>
+            ≈ ₱{phpBalance} PHP
+          </Text>
 
           <View style={walletStyles.actionRow}>
-            <Pressable style={walletStyles.actionButtonPrimary}>
+            <Pressable style={walletStyles.actionButtonPrimary} onPress={onOpenAddFunds}>
               <Text style={walletStyles.actionButtonText}>Add Funds</Text>
             </Pressable>
             <Pressable style={walletStyles.actionButtonSecondary} onPress={onOpenRemit}>
@@ -148,14 +148,12 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
 
         <GlassBox style={walletStyles.insightCard} contentStyle={walletStyles.insightCardContent} vectorHeight={120}>
           <View style={walletStyles.insightAvatar}>
-            <Text style={walletStyles.insightAvatarText}>☺</Text>
+            <RNImage source={require('../../assets/PaytakaChatBot.png')} style={walletStyles.takaAvatarIcon} />
           </View>
 
           <View style={walletStyles.insightBody}>
-            <Text style={walletStyles.insightTitle}>AI INSIGHT</Text>
-            <Text style={walletStyles.insightText}>
-              Hey there! You just received <Text style={walletStyles.highlightBlue}>$200 USDC</Text> from Alex. Your essential expenses are fully covered for the week, so I want to put these funds to work. We could allocate <Text style={walletStyles.highlightOrange}>$120 into BTC</Text> and stake the remaining <Text style={walletStyles.highlightOrange}>$50 to earn some passive yield.</Text> Let me know if you want me to set that up.
-            </Text>
+            <Text style={[walletStyles.insightTitle, { fontSize: 11, color: '#E5D8EE', marginBottom: 8 }]}>AI INSIGHT</Text>
+            <Text style={[walletStyles.insightText, { fontSize: 11, lineHeight: 16, color: '#D7D0D6', marginBottom: 12 }]}>{aiInsightMessage}</Text>
 
             <Pressable style={walletStyles.chatButton} onPress={onOpenChatbot}>
               <RNImage source={require('../../assets/PaytakaChatBot.png')} style={walletStyles.chatBotIcon} />
@@ -171,7 +169,7 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
             <View key={asset.symbol} style={walletStyles.assetRow}>
               <View style={walletStyles.assetIdentity}>
                 <View style={[walletStyles.assetBadge, asset.tone === 'blue' ? walletStyles.assetBadgeBlue : walletStyles.assetBadgeTeal]}>
-                  <Text style={walletStyles.assetBadgeText}>{asset.symbol === 'USDC' ? '$' : '◈'}</Text>
+                  <Text style={walletStyles.assetBadgeText}>{asset.symbol === 'USDC' ? '$' : '₮'}</Text>
                 </View>
 
                 <View>
@@ -184,14 +182,19 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
             </View>
           ))}
         </GlassBox>
-
-        <Pressable style={walletStyles.floatingBot} onPress={onOpenChatbot}>
-          <RNImage source={require('../../assets/PaytakaChatBot.png')} style={walletStyles.floatingBotIcon} />
-          <View style={walletStyles.notificationDot} />
-        </Pressable>
       </ScrollView>
 
+      <Pressable style={{ position: 'absolute', bottom: 100, right: 26, width: 80, height: 80, alignItems: 'center', justifyContent: 'center' }} onPress={onOpenChatbot}>
+        <RNImage source={require('../../assets/PaytakaChatBot.png')} style={{ width: 150, height: 150 }} />
+      </Pressable>
+
       {renderBottomNav()}
+
+      <SettingsDrawer
+        visible={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onSignOut={handleSignOut}
+      />
     </SafeAreaView>
   );
 }

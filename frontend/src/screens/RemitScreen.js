@@ -1,22 +1,31 @@
 import { StatusBar } from 'expo-status-bar';
-import { Alert, Image, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassBox from '../components/GlassBox';
 import TabIcon from '../components/TabIcon';
+import BackgroundGradient from '../components/BackgroundGradient';
 import { remitStyles } from '../styles/remitStyles';
 import { useEffect, useMemo, useState } from 'react';
 import { remittanceApi } from '../lib/api';
-import { useWallet } from '../contexts/WalletContext';
+import { useWallet, useAuth } from '../contexts';
 
 const quickAmounts = ['$25', '$50', '$100', '$500'];
+const savedContacts = ['Mom', 'Wife', 'Brother', 'Alex R.'];
 const bottomTabs = ['Wallet', 'Remit', 'Scanner', 'History'];
 
 export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, onOpenHistory, onOpenReceipt, onOpenScanner }) {
-  const wallet = useWallet();
+  const { user } = useAuth();
+  const { balance, usdcBalance, usdtBalance } = useWallet();
   const [amount, setAmount] = useState(prefill?.amount ? String(prefill.amount).replace('$', '') : '');
   const [recipientId, setRecipientId] = useState(prefill?.recipientId ?? prefill?.recipientName ?? '');
   const [note, setNote] = useState(prefill?.memo ?? '');
   const [isSending, setIsSending] = useState(false);
+  const [selectedToken, setSelectedToken] = useState('USDC');
   const [errorMessage, setErrorMessage] = useState('');
+
+  const displayName = user?.displayName ?? 'User';
+  const balanceValue = balance?.formatted ? Number(balance.formatted) : 0;
+  const totalBalance = `$ ${balanceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   useEffect(() => {
     if (!prefill) return;
@@ -26,13 +35,23 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
   }, [prefill]);
 
   const activeAsset = useMemo(
-    () => ({
-      symbol: wallet.balance?.tokenSymbol ?? 'USDC',
-      name: 'USD Coin',
-      balance: wallet.balance?.formatted ? `$${Number(wallet.balance.formatted).toLocaleString()}` : '$0.00',
-      tone: 'blue',
-    }),
-    [wallet.balance]
+    () => {
+      if (selectedToken === 'USDT') {
+        return {
+          symbol: 'USDT',
+          name: 'Tether',
+          balance: `$${usdtBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          tone: 'teal',
+        };
+      }
+      return {
+        symbol: 'USDC',
+        name: 'USD Coin',
+        balance: `$${usdcBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        tone: 'blue',
+      };
+    },
+    [selectedToken, usdcBalance, usdtBalance]
   );
 
   const applyQuickAmount = (q) => {
@@ -49,61 +68,53 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
     }
 
     if (!recipientId.trim()) {
-      Alert.alert('Missing recipient', 'Please enter a recipient user ID. The backend remittance route requires a real backend user id.');
+      Alert.alert('Missing recipient', 'Please enter a recipient name, address, or @handle');
       return;
     }
 
-    if (!wallet.address) {
-      Alert.alert('Connect wallet first', 'Load a wallet address from the Wallet screen before creating a backend remittance draft.');
-      return;
-    }
-
-    setIsSending(true);
-    setErrorMessage('');
-    try {
-      const draft = await remittanceApi.createDraft({
-        recipientId: recipientId.trim(),
-        amount,
-        memo: note.trim() || undefined,
-        fromAddress: wallet.address,
-        toAddress: recipientId.trim(),
-      });
-
-      onOpenReceipt?.(draft);
-    } catch (err) {
-      console.error(err);
-      const message = err?.message || 'Could not create remittance';
-      setErrorMessage(message);
-      Alert.alert('Send failed', message);
-    } finally {
-      setIsSending(false);
-    }
+    // Demo mode: simulate successful send
+    Alert.alert(
+      'Transfer Initiated',
+      `Sending $${amount} USDC to ${recipientId}. This is a demo - no real transaction occurred.`,
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            // Reset form
+            setAmount('');
+            setRecipientId('');
+            setNote('');
+            // Navigate back to wallet
+            onBackToWallet?.();
+          },
+        },
+      ]
+    );
   };
 
   return (
-    <SafeAreaView style={remitStyles.safeArea}>
+    <SafeAreaView style={remitStyles.safeArea} edges={['top']}>
       <StatusBar style="light" />
 
+      <BackgroundGradient />
       <Image source={require('../../assets/Vector.png')} style={remitStyles.vectorTopLeft} />
 
-      <ScrollView contentContainerStyle={remitStyles.content} showsVerticalScrollIndicator={false}>
-        <Text style={remitStyles.screenHeader}>Send/Remit</Text>
-
+      <ScrollView contentContainerStyle={remitStyles.content} showsVerticalScrollIndicator={false} bounces={false}>
         <View style={remitStyles.headerRow}>
           <Pressable style={remitStyles.iconButton} onPress={onBackToWallet ?? onBackToLanding}>
-            <Text style={remitStyles.menuIcon}>≡</Text>
+            <Text style={remitStyles.menuIcon}>☰</Text>
           </Pressable>
 
-          <View style={remitStyles.avatarMark}>
-            <Text style={remitStyles.avatarLetter}>u</Text>
-          </View>
+          <Pressable style={remitStyles.avatarMark} onPress={onBackToLanding}>
+            <Text style={remitStyles.avatarLetter}>{displayName.charAt(0).toUpperCase()}</Text>
+          </Pressable>
         </View>
 
         <Text style={remitStyles.remitTitle}>Send Money</Text>
 
         <GlassBox style={remitStyles.totalBalancePanel} contentStyle={remitStyles.totalBalancePanelContent} vectorHeight={96}>
           <Text style={remitStyles.totalBalanceLabel}>TOTAL BALANCE</Text>
-          <Text style={remitStyles.totalBalanceValue}>{wallet.balance?.formatted ? `$ ${Number(wallet.balance.formatted).toLocaleString()}` : '$ 0.00'}</Text>
+          <Text style={remitStyles.totalBalanceValue}>{totalBalance}</Text>
         </GlassBox>
 
         <GlassBox style={remitStyles.transferCard} contentStyle={remitStyles.transferCardContent} vectorHeight={126}>
@@ -112,8 +123,8 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
           <Text style={remitStyles.transferFieldLabel}>Send Token</Text>
           <Pressable style={remitStyles.tokenSelect}>
             <View style={remitStyles.tokenSelectLeft}>
-              <View style={[remitStyles.assetBadge, activeAsset.tone === 'blue' ? remitStyles.assetBadgeBlue : remitStyles.assetBadgeTeal]}>
-                <Text style={remitStyles.assetBadgeText}>{activeAsset.symbol === 'USDC' ? '$' : '◈'}</Text>
+              <View style={[remitStyles.assetBadge, remitStyles.assetBadgeBlue]}>
+                <Text style={remitStyles.assetBadgeText}>$</Text>
               </View>
               <View>
                 <Text style={remitStyles.tokenSymbol}>{activeAsset.symbol}</Text>
@@ -123,7 +134,7 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
             <Text style={remitStyles.dropdownChevron}>⌄</Text>
           </Pressable>
 
-          <Text style={remitStyles.transferFieldLabel}>Amount</Text>
+          <Text style={remitStyles.transferFieldLabel}>AMOUNT</Text>
           <View style={remitStyles.amountBlock}>
             <TextInput
               value={amount}
@@ -143,16 +154,24 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
             </View>
           </View>
 
-          <Text style={remitStyles.transferFieldLabel}>Recipient User ID</Text>
+          <Text style={remitStyles.transferFieldLabel}>RECIPIENT</Text>
           <TextInput
             value={recipientId}
             onChangeText={setRecipientId}
-            placeholder="User ID from the backend"
+            placeholder="Name, address, or @handle"
             placeholderTextColor="rgba(255,255,255,0.34)"
             style={remitStyles.textField}
           />
+          
+          <View style={remitStyles.recipientPillsRow}>
+            {savedContacts.map((contact) => (
+              <Pressable key={contact} onPress={() => pickRecipient(contact)} style={remitStyles.recipientChip}>
+                <Text style={remitStyles.recipientChipText}>{contact}</Text>
+              </Pressable>
+            ))}
+          </View>
 
-          <Text style={remitStyles.transferFieldLabel}>Note (Optional)</Text>
+          <Text style={remitStyles.transferFieldLabel}>NOTE (OPTIONAL)</Text>
           <TextInput
             value={note}
             onChangeText={setNote}
@@ -163,10 +182,8 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
           />
 
           <Pressable style={remitStyles.sendButton} onPress={handleSend} disabled={isSending}>
-            <Text style={remitStyles.sendButtonText}>{isSending ? 'Sending…' : 'Send Now'}</Text>
+            <Text style={remitStyles.sendButtonText}>{isSending ? 'Sending…' : '✈  Send Now'}</Text>
           </Pressable>
-
-          {errorMessage ? <Text style={{ color: '#f7d3d3', marginTop: 12 }}>{errorMessage}</Text> : null}
         </GlassBox>
       </ScrollView>
 

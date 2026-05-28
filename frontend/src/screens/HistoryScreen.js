@@ -1,40 +1,119 @@
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, SafeAreaView, ScrollView, Text, View, Image as RNImage, ActivityIndicator } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image as RNImage, Pressable, SectionList, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassBox from '../components/GlassBox';
 import TabIcon from '../components/TabIcon';
-import { historyStyles } from '../styles/historyStyles';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import BackgroundGradient from '../components/BackgroundGradient';
+import { useAuth, useWallet } from '../contexts';
 import { remittanceApi } from '../lib/api';
-import { useAuth } from '../contexts';
-import { shortAddress, formatDatePretty } from '../lib/morph';
+import { formatDatePretty, shortAddress } from '../lib/morph';
+import { historyStyles } from '../styles/historyStyles';
 
 const bottomTabs = ['Wallet', 'Remit', 'Scanner', 'History'];
 
-
-
 export default function HistoryScreen({ onBackToWallet, onBackToLanding, onOpenRemit, onOpenScanner, onOpenReceipt }) {
   const { user } = useAuth();
+  const { transactions, address } = useWallet();
   const [remittances, setRemittances] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   const loadRemittances = useCallback(async () => {
     setLoading(true);
-    setErrorMessage('');
 
     try {
+      // Try to get backend remittances first
       const list = await remittanceApi.list();
-      setRemittances(list);
+      
+      // Merge with blockchain transactions
+      const mergedTxs = [...list];
+      
+      // Add blockchain transactions that aren't in backend
+      if (transactions && transactions.length > 0) {
+        transactions.forEach(tx => {
+          const exists = list.find(r => r.txHash === tx.hash);
+          if (!exists) {
+            mergedTxs.push({
+              id: tx.id,
+              amount: tx.amount,
+              tokenSymbol: tx.tokenSymbol,
+              status: 'COMPLETED',
+              createdAt: new Date(tx.timestamp).toISOString(),
+              fromAddress: tx.from,
+              toAddress: tx.to,
+              txHash: tx.hash,
+              recipientId: tx.direction === 'sent' ? 'blockchain-user' : null,
+              recipient: tx.direction === 'sent' ? { displayName: shortAddress(tx.to) } : null,
+              sender: tx.direction === 'received' ? { displayName: shortAddress(tx.from) } : null,
+            });
+          }
+        });
+      }
+      
+      setRemittances(mergedTxs);
     } catch (err) {
-      setErrorMessage(err?.message ?? 'Could not load remittances');
+      // Use blockchain transactions as fallback
+      console.log('Using blockchain transaction data:', err?.message);
+      if (transactions && transactions.length > 0) {
+        const blockchainTxs = transactions.map(tx => ({
+          id: tx.id,
+          amount: tx.amount,
+          tokenSymbol: tx.tokenSymbol,
+          status: 'COMPLETED',
+          createdAt: new Date(tx.timestamp).toISOString(),
+          fromAddress: tx.from,
+          toAddress: tx.to,
+          txHash: tx.hash,
+          recipientId: tx.direction === 'sent' ? 'blockchain-user' : null,
+          recipient: tx.direction === 'sent' ? { displayName: shortAddress(tx.to) } : null,
+          sender: tx.direction === 'received' ? { displayName: shortAddress(tx.from) } : null,
+        }));
+        setRemittances(blockchainTxs);
+      } else {
+        setRemittances([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [transactions]);
 
   useEffect(() => {
     loadRemittances();
   }, [loadRemittances]);
+
+  // Calculate monthly summary from real transaction data
+  const monthlySummary = useMemo(() => {
+    if (!remittances || !remittances.length) {
+      return { received: 0, sent: 0, net: 0 };
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let received = 0;
+    let sent = 0;
+
+    remittances.forEach((r) => {
+      const txDate = new Date(r.createdAt || r.updatedAt || Date.now());
+      if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+        const amount = Number(r.amount) || 0;
+        const isIncoming = r.recipientId === user?.id;
+        
+        if (isIncoming) {
+          received += amount;
+        } else {
+          sent += amount;
+        }
+      }
+    });
+
+    return {
+      received,
+      sent,
+      net: received - sent,
+    };
+  }, [remittances, user]);
 
   const sections = useMemo(() => {
     if (!remittances || !remittances.length) return [];
@@ -64,7 +143,7 @@ export default function HistoryScreen({ onBackToWallet, onBackToLanding, onOpenR
         initials,
         name,
         tag: r.tokenSymbol ?? 'USDC',
-        time: `${isIncoming ? 'Received' : 'Sent'} • ${new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        time: `${isIncoming ? 'Received' : 'Sent'} - ${new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
         amount: `${isIncoming ? '+' : '-'}$${Number(r.amount).toFixed(2)}`,
         fiat: '-',
         status: r.status ?? 'Draft',
@@ -72,7 +151,7 @@ export default function HistoryScreen({ onBackToWallet, onBackToLanding, onOpenR
       });
     });
 
-    return Object.keys(groups).map((k) => ({ title: k, items: groups[k] }));
+    return Object.keys(groups).map((title) => ({ title, data: groups[title] }));
   }, [remittances, user]);
 
   const renderBottomNav = () => (
@@ -82,21 +161,9 @@ export default function HistoryScreen({ onBackToWallet, onBackToLanding, onOpenR
           key={tab}
           style={historyStyles.tabItem}
           onPress={() => {
-            if (tab === 'Wallet') {
-              onBackToWallet?.();
-            }
-
-            if (tab === 'Remit') {
-              onOpenRemit?.();
-            }
-
-            if (tab === 'Scanner') {
-              onOpenScanner?.();
-            }
-
-            if (tab === 'History') {
-              return;
-            }
+            if (tab === 'Wallet') onBackToWallet?.();
+            if (tab === 'Remit') onOpenRemit?.();
+            if (tab === 'Scanner') onOpenScanner?.();
           }}
         >
           <TabIcon tab={tab} active={tab === 'History'} />
@@ -106,108 +173,118 @@ export default function HistoryScreen({ onBackToWallet, onBackToLanding, onOpenR
     </View>
   );
 
-  return (
-    <SafeAreaView style={historyStyles.safeArea}>
-      <StatusBar style="light" />
+  const renderHeader = () => (
+    <>
+      {loading ? (
+        <View style={{ padding: 24 }}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      ) : null}
 
-      <RNImage source={require('../../assets/Vector.png')} style={historyStyles.vectorTopLeft} />
+      <View style={historyStyles.headerRow}>
+        <Pressable style={historyStyles.iconButton} onPress={onBackToWallet ?? onBackToLanding}>
+          <Text style={historyStyles.menuIcon}>☰</Text>
+        </Pressable>
 
-      <ScrollView contentContainerStyle={historyStyles.content} showsVerticalScrollIndicator={false}>
-        {loading && (
-          <View style={{ padding: 24 }}>
-            <ActivityIndicator size="large" color="#fff" />
+        <View style={historyStyles.headerCenter}>
+          <Text style={historyStyles.headerTitle}>Taka</Text>
+          <Text style={historyStyles.headerSubtitle}>Activity history</Text>
+        </View>
+
+        <Pressable style={historyStyles.avatarMark} onPress={onBackToLanding}>
+          <Text style={historyStyles.avatarLetter}>{(user?.displayName ?? 'U').charAt(0).toUpperCase()}</Text>
+        </Pressable>
+      </View>
+
+      <GlassBox style={historyStyles.summaryCard} contentStyle={historyStyles.summaryCardContent} vectorHeight={114}>
+        <Text style={historyStyles.summaryTitle}>THIS MONTH</Text>
+        <View style={historyStyles.summaryGrid}>
+          <View style={historyStyles.summaryItem}>
+            <Text style={historyStyles.summaryValue}>+${monthlySummary.received.toFixed(2)}</Text>
+            <Text style={historyStyles.summaryLabel}>Received</Text>
           </View>
-        )}
-        {errorMessage ? (
-          <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
-            <Text style={{ color: '#f7d3d3', marginBottom: 12 }}>{errorMessage}</Text>
-            <Pressable style={historyStyles.iconButton} onPress={loadRemittances}>
-              <Text style={historyStyles.menuIcon}>↻</Text>
-            </Pressable>
+          <View style={historyStyles.summaryItem}>
+            <Text style={[historyStyles.summaryValue, historyStyles.summaryNegative]}>-${monthlySummary.sent.toFixed(2)}</Text>
+            <Text style={historyStyles.summaryLabel}>Sent</Text>
           </View>
-        ) : null}
-        <View style={historyStyles.headerRow}>
-          <Pressable style={historyStyles.iconButton} onPress={onBackToWallet ?? onBackToLanding}>
-            <Text style={historyStyles.menuIcon}>‹</Text>
-          </Pressable>
+          <View style={historyStyles.summaryItem}>
+            <Text style={historyStyles.summaryValue}>{monthlySummary.net >= 0 ? '+' : ''}${monthlySummary.net.toFixed(2)}</Text>
+            <Text style={historyStyles.summaryLabel}>Net</Text>
+          </View>
+        </View>
+      </GlassBox>
+    </>
+  );
 
-          <View style={historyStyles.headerCenter}>
-            <Text style={historyStyles.headerTitle}>Taka</Text>
-            <Text style={historyStyles.headerSubtitle}>Activity history</Text>
+  const renderSectionHeader = ({ section }) => (
+    <View style={historyStyles.sectionHeaderRow}>
+      <View style={historyStyles.sectionRule} />
+      <Text style={historyStyles.sectionTitle}>{section.title}</Text>
+      <View style={historyStyles.sectionRule} />
+    </View>
+  );
+
+  const renderItem = ({ item }) => (
+    <Pressable onPress={() => onOpenReceipt?.(item.remittance)}>
+      <GlassBox style={historyStyles.activityCard} contentStyle={historyStyles.activityCardContent} vectorHeight={92}>
+        <View style={historyStyles.activityLeft}>
+          <View style={historyStyles.activityAvatarWrap}>
+            <View style={historyStyles.activityAvatar}>
+              <Text style={historyStyles.activityAvatarText}>{item.initials}</Text>
+            </View>
+            <View style={[historyStyles.activityDot, item.positive ? historyStyles.activityDotPositive : historyStyles.activityDotNegative]} />
           </View>
 
-          <View style={historyStyles.avatarMark}>
-            <Text style={historyStyles.avatarLetter}>u</Text>
+          <View style={historyStyles.activityTextWrap}>
+            <View style={historyStyles.activityNameRow}>
+              <Text style={historyStyles.activityName}>{item.name}</Text>
+              <View style={historyStyles.tagPill}>
+                <Text style={historyStyles.tagPillText}>{item.tag}</Text>
+              </View>
+            </View>
+            <Text style={historyStyles.activityMeta}>{item.time}</Text>
           </View>
         </View>
 
-        <GlassBox style={historyStyles.summaryCard} contentStyle={historyStyles.summaryCardContent} vectorHeight={114}>
-          <Text style={historyStyles.summaryTitle}>THIS MONTH</Text>
-          <View style={historyStyles.summaryGrid}>
-            <View style={historyStyles.summaryItem}>
-              <Text style={historyStyles.summaryValue}>+$500.00</Text>
-              <Text style={historyStyles.summaryLabel}>Received</Text>
-            </View>
-            <View style={historyStyles.summaryItem}>
-              <Text style={[historyStyles.summaryValue, historyStyles.summaryNegative]}>-$245.50</Text>
-              <Text style={historyStyles.summaryLabel}>Sent</Text>
-            </View>
-            <View style={historyStyles.summaryItem}>
-              <Text style={historyStyles.summaryValue}>+$254.50</Text>
-              <Text style={historyStyles.summaryLabel}>Net</Text>
-            </View>
+        <View style={historyStyles.activityRight}>
+          <Text style={[historyStyles.activityAmount, item.positive ? historyStyles.activityAmountPositive : historyStyles.activityAmountNegative]}>{item.amount}</Text>
+          <Text style={historyStyles.activityFiat}>{item.fiat}</Text>
+          <View style={[historyStyles.statusPill, item.status === 'PENDING' ? historyStyles.statusPending : historyStyles.statusConfirmed]}>
+            <Text style={historyStyles.statusPillText}>{item.status}</Text>
           </View>
-        </GlassBox>
+        </View>
+      </GlassBox>
+    </Pressable>
+  );
 
-        {sections.map((section) => (
-          <View key={section.title} style={historyStyles.sectionBlock}>
-            <View style={historyStyles.sectionHeaderRow}>
-              <View style={historyStyles.sectionRule} />
-              <Text style={historyStyles.sectionTitle}>{section.title}</Text>
-              <View style={historyStyles.sectionRule} />
-            </View>
+  const renderEmpty = () =>
+    !loading ? (
+      <View style={{ paddingHorizontal: 24, paddingVertical: 18 }}>
+        <Text style={{ color: 'rgba(234,232,241,0.8)' }}>No transactions yet. Send or receive funds to see your activity here.</Text>
+      </View>
+    ) : null;
 
-            {section.items.map((item) => (
-              <Pressable key={`${section.title}-${item.name}-${item.time}`} onPress={() => onOpenReceipt?.(item.remittance)}>
-                <GlassBox style={historyStyles.activityCard} contentStyle={historyStyles.activityCardContent} vectorHeight={92}>
-                  <View style={historyStyles.activityLeft}>
-                    <View style={historyStyles.activityAvatarWrap}>
-                      <View style={historyStyles.activityAvatar}>
-                        <Text style={historyStyles.activityAvatarText}>{item.initials}</Text>
-                      </View>
-                      <View style={[historyStyles.activityDot, item.positive ? historyStyles.activityDotPositive : historyStyles.activityDotNegative]} />
-                    </View>
+  return (
+    <SafeAreaView style={historyStyles.safeArea} edges={['top']}>
+      <StatusBar style="light" />
 
-                    <View style={historyStyles.activityTextWrap}>
-                      <View style={historyStyles.activityNameRow}>
-                        <Text style={historyStyles.activityName}>{item.name}</Text>
-                        <View style={historyStyles.tagPill}>
-                          <Text style={historyStyles.tagPillText}>{item.tag}</Text>
-                        </View>
-                      </View>
-                      <Text style={historyStyles.activityMeta}>{item.time}</Text>
-                    </View>
-                  </View>
+      <BackgroundGradient />
+      <RNImage source={require('../../assets/Vector.png')} style={historyStyles.vectorTopLeft} />
 
-                  <View style={historyStyles.activityRight}>
-                    <Text style={[historyStyles.activityAmount, item.positive ? historyStyles.activityAmountPositive : historyStyles.activityAmountNegative]}>{item.amount}</Text>
-                    <Text style={historyStyles.activityFiat}>{item.fiat}</Text>
-                    <View style={[historyStyles.statusPill, item.status === 'Pending' ? historyStyles.statusPending : historyStyles.statusConfirmed]}>
-                      <Text style={historyStyles.statusPillText}>{item.status}</Text>
-                    </View>
-                  </View>
-                </GlassBox>
-              </Pressable>
-            ))}
-          </View>
-        ))}
-
-        {!loading && !errorMessage && sections.length === 0 ? (
-          <View style={{ paddingHorizontal: 24, paddingVertical: 18 }}>
-            <Text style={{ color: 'rgba(234,232,241,0.8)' }}>No backend remittances yet. Create one from Remit to see it here.</Text>
-          </View>
-        ) : null}
-      </ScrollView>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={historyStyles.content}
+        showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+      />
 
       {renderBottomNav()}
     </SafeAreaView>
