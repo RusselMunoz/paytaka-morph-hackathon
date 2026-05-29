@@ -2,6 +2,8 @@
 
 PayTaka is a stablecoin-powered remittance and payments app built on Morph, designed for cross-border transfers for Filipino families.
 
+![Alt Text](PayTaka_Background.png)
+
 ## Problem Statement
 
 Filipino families working abroad face high fees, slow processing times, and limited transparency when sending money home. Traditional remittance services charge 5-10% in fees and can take days to process, making it expensive and inefficient for overseas workers to support their families.
