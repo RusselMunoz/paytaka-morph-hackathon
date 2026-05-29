@@ -13,9 +13,6 @@ import { useEffect, useMemo, useState } from 'react';
 
 const bottomTabs = ['Wallet', 'Remit', 'Scanner', 'History'];
 
-// Demo wallet address
-const DEMO_WALLET_ADDRESS = '0x338442CEEd20F53f78b0A30223f7d6797e24ED48';
-
 // Get time-based greeting
 const getTimeBasedGreeting = () => {
   const hour = new Date().getHours();
@@ -102,16 +99,6 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
   const balanceValue = balance?.formatted ? Number(balance.formatted) : 0;
   const totalBalance = `$${balanceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const phpBalance = (balanceValue * usdPhpRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  // Auto-connect demo wallet if no address is set
-  useEffect(() => {
-    if (!address && isAuthenticated) {
-      connectWithAddress(DEMO_WALLET_ADDRESS, { syncToBackend: true })
-        .catch(() => {
-          // Silent fail for demo - use mock data
-        });
-    }
-  }, [address, isAuthenticated, connectWithAddress]);
 
   // Quick assets with real blockchain data - HodETH first, then stablecoins
   const quickAssets = useMemo(() => {

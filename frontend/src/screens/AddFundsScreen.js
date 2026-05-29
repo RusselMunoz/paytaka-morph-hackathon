@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassBox from '../components/GlassBox';
 import BackgroundGradient from '../components/BackgroundGradient';
 import { remitStyles } from '../styles/remitStyles';
-import { useAuth } from '../contexts';
+import { useAuth, useWallet } from '../contexts';
 
 const quickAmounts = ['$25', '$50', '$100', '$500'];
 const paymentMethods = [
@@ -13,10 +13,9 @@ const paymentMethods = [
   { id: 'crypto', label: 'Crypto Deposit', icon: '₿' },
 ];
 
-const DEMO_WALLET_ADDRESS = '0x338442CEEd20F53f78b0A30223f7d6797e24ED48';
-
 export default function AddFundsScreen({ onBack }) {
   const { user } = useAuth();
+  const { address } = useWallet();
   const [amount, setAmount] = useState('');
   const [selectedToken, setSelectedToken] = useState('USDC');
   const [selectedMethod, setSelectedMethod] = useState('crypto');
@@ -48,7 +47,11 @@ export default function AddFundsScreen({ onBack }) {
   };
 
   const copyAddress = () => {
-    Alert.alert('Address Copied', `Wallet address copied to clipboard:\n${DEMO_WALLET_ADDRESS}`);
+    if (address) {
+      Alert.alert('Address Copied', `Wallet address copied to clipboard:\n${address}`);
+    } else {
+      Alert.alert('No Wallet', 'Please connect a wallet first');
+    }
   };
 
   return (
@@ -135,7 +138,7 @@ export default function AddFundsScreen({ onBack }) {
             <>
               <Text style={remitStyles.transferFieldLabel}>DEPOSIT ADDRESS</Text>
               <Pressable onPress={copyAddress} style={[remitStyles.textField, { marginBottom: 12 }]}>
-                <Text style={{ color: '#E8E0ED', fontSize: 10 }}>{DEMO_WALLET_ADDRESS}</Text>
+                <Text style={{ color: '#E8E0ED', fontSize: 10 }}>{address || 'No wallet connected'}</Text>
               </Pressable>
               <View style={{ backgroundColor: '#FFF', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ color: '#333', fontSize: 10 }}>QR Code Placeholder</Text>

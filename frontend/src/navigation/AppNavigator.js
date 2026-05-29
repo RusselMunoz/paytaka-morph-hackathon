@@ -1,9 +1,10 @@
 import { Suspense, lazy, useState, useEffect } from 'react';
 import ScreenTransition from '../components/ScreenTransition';
 import ScreenLoader from '../components/ScreenLoader';
-import { useAuth } from '../contexts';
+import { useAuth, useWallet } from '../contexts';
 
 const LandingScreen = lazy(() => import('../screens/LandingScreen'));
+const WalletInputScreen = lazy(() => import('../screens/WalletInputScreen'));
 const WalletScreen = lazy(() => import('../screens/WalletScreen'));
 const RemitScreen = lazy(() => import('../screens/RemitScreen'));
 const ScannerScreen = lazy(() => import('../screens/ScannerScreen'));
@@ -13,33 +14,34 @@ const ReceiptScreen = lazy(() => import('../screens/ReceiptScreen'));
 const AddFundsScreen = lazy(() => import('../screens/AddFundsScreen'));
 const ContactsScreen = lazy(() => import('../screens/ContactsScreen'));
 
-// Demo session data
-const DEMO_USER = {
-  id: 'demo-user-123',
-  displayName: 'Demo User',
-  email: 'demo@paytaka.com',
-  role: 'RECIPIENT',
-};
-
-const DEMO_TOKEN = 'demo-token-for-testing';
-const DEMO_WALLET_ADDRESS = '0x338442CEEd20F53f78b0A30223f7d6797e24ED48';
-
 export default function AppNavigator() {
   const [activeScreen, setActiveScreen] = useState({ name: 'landing', params: {} });
-  const [isDemoSessionLoaded, setIsDemoSessionLoaded] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const { user, token } = useAuth();
-  // Removed useWallet() call from here - it's not needed in AppNavigator
-  // WalletScreen will handle wallet connection internally
+  const { address, isConnected } = useWallet();
 
-  // Auto-load demo session on app start
+  // Check for saved wallet on app launch
   useEffect(() => {
-    if (!isDemoSessionLoaded && !user && !token) {
-      // Simulate demo session by setting context values
-      // Note: Since we can't directly call context setters here,
-      // we'll rely on the WalletScreen to auto-connect the demo wallet
-      setIsDemoSessionLoaded(true);
-    }
-  }, [isDemoSessionLoaded, user, token]);
+    const checkSavedWallet = async () => {
+      // Wait a moment for WalletContext to load saved address
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // If wallet is connected (loaded from AsyncStorage), go to wallet screen
+      if (isConnected && address) {
+        console.log('[AppNavigator] Saved wallet found, navigating to wallet screen');
+        setActiveScreen({ name: 'wallet', params: {} });
+      }
+      
+      setIsInitializing(false);
+    };
+
+    checkSavedWallet();
+  }, [isConnected, address]);
+
+  // Show loader while checking for saved wallet
+  if (isInitializing) {
+    return <ScreenLoader />;
+  }
 
   const openScreen = (name, params = {}) => {
     setActiveScreen({ name, params });
@@ -47,7 +49,14 @@ export default function AppNavigator() {
 
   let screen;
 
-  if (activeScreen.name === 'contacts') {
+  if (activeScreen.name === 'walletInput') {
+    screen = (
+      <WalletInputScreen
+        onWalletLoaded={() => openScreen('wallet')}
+        onBack={() => openScreen('landing')}
+      />
+    );
+  } else if (activeScreen.name === 'contacts') {
     screen = (
       <ContactsScreen
         onBack={() => openScreen('wallet')}
@@ -119,7 +128,12 @@ export default function AppNavigator() {
       />
     );
   } else {
-    screen = <LandingScreen onAuthenticated={() => openScreen('wallet')} />;
+    screen = (
+      <LandingScreen
+        onAuthenticated={() => openScreen('wallet')}
+        onNavigateToWalletInput={() => openScreen('walletInput')}
+      />
+    );
   }
 
   return (

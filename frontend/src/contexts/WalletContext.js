@@ -6,8 +6,8 @@ import { MORPH_RPC_URL, MORPH_USDC_ADDRESS, MORPH_USDT_ADDRESS, MORPH_EXPLORER_U
 
 const WalletContext = createContext(null);
 
-// Demo wallet address
-const DEMO_WALLET_ADDRESS = '0x338442CEEd20F53f78b0A30223f7d6797e24ED48';
+// Storage key for wallet address
+const WALLET_ADDRESS_KEY = '@paytaka_wallet_address';
 
 // Fallback RPC URLs for better reliability (in priority order)
 const RPC_URLS = [
@@ -21,7 +21,7 @@ const RPC_URLS = [
 // ERC20 balanceOf function signature
 const BALANCE_OF_SIGNATURE = '0x70a08231';
 
-// Storage keys
+// Storage keys for balance tracking
 const LAST_BALANCE_KEY = '@paytaka_last_balance';
 const LAST_FETCH_TIME_KEY = '@paytaka_last_fetch_time';
 
@@ -157,14 +157,7 @@ export function WalletProvider({ children }) {
       const nativeBal = hexToDecimal(nativeData, 18);
       console.log(`[Balance] ✅ Native balance: ${nativeBal} HodETH`);
       
-      // If balance is 0 but we're using the demo wallet, use fallback
-      const finalNativeBal = (nativeBal === 0 && targetAddress.toLowerCase() === DEMO_WALLET_ADDRESS.toLowerCase())
-        ? 2.175
-        : nativeBal;
-      
-      if (finalNativeBal !== nativeBal) {
-        console.log(`[Balance] ⚠️ Using demo fallback: ${finalNativeBal} HodETH (real balance was 0)`);
-      }
+      const finalNativeBal = nativeBal;
 
       // Fetch USDC balance
       console.log(`[Balance] 💵 Fetching USDC balance...`);
@@ -207,11 +200,21 @@ export function WalletProvider({ children }) {
   // Fetch transaction history
   const fetchTransactionHistory = async (targetAddress) => {
     try {
-      // Fetch logs for USDC transfers
+      // Get current block number first
+      const latestBlockHex = await rpcCall('eth_blockNumber', []);
+      const latestBlock = parseInt(latestBlockHex, 16);
+      
+      // Calculate fromBlock (latest - 3000 blocks, minimum 0)
+      const fromBlockNumber = Math.max(0, latestBlock - 3000);
+      const fromBlockHex = '0x' + fromBlockNumber.toString(16);
+      
+      console.log(`[Transaction History] Latest block: ${latestBlock}, From block: ${fromBlockNumber}`);
+      
+      // Fetch logs for USDC transfers with reasonable block range
       const usdcLogs = await rpcCall('eth_getLogs', [
         {
           address: MORPH_USDC_ADDRESS,
-          fromBlock: '0x0',
+          fromBlock: fromBlockHex,
           toBlock: 'latest',
           topics: [
             '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef', // Transfer event signature
@@ -312,26 +315,23 @@ export function WalletProvider({ children }) {
       setBalance(balanceData);
       return balanceData;
     } catch (error) {
-      console.error('❌ Balance refresh failed, using demo data:', error);
-      // Fallback to demo data with native balance
-      const demoBalance = {
-        formatted: '4797.45',
-        usdc: 3118.34,
-        usdt: 1679.11,
-        native: 2.175, // Demo native balance
-        hodeth: 2.175,
+      console.error('❌ Balance refresh failed:', error);
+      // Set zero balances on error
+      const errorBalance = {
+        formatted: '0.00',
+        usdc: 0,
+        usdt: 0,
+        native: 0,
+        hodeth: 0,
         usdPhpRate: 56.5,
-        change: 37.12,
-        changePercent: 0.78,
+        change: 0,
+        changePercent: 0,
       };
-      setBalance(demoBalance);
-      setUsdcBalance(3118.34);
-      setUsdtBalance(1679.11);
-      setNativeBalance(2.175);
-      setUsdPhpRate(56.5);
-      setBalanceChange(37.12);
-      setBalanceChangePercent(0.78);
-      return demoBalance;
+      setBalance(errorBalance);
+      setUsdcBalance(0);
+      setUsdtBalance(0);
+      setNativeBalance(0);
+      return errorBalance;
     } finally {
       setIsLoadingBalance(false);
     }
@@ -356,6 +356,23 @@ export function WalletProvider({ children }) {
     }
   }, [address]);
 
+  // Load saved wallet address on mount
+  useEffect(() => {
+    const loadSavedWallet = async () => {
+      try {
+        const savedAddress = await AsyncStorage.getItem(WALLET_ADDRESS_KEY);
+        if (savedAddress && isEvmAddress(savedAddress)) {
+          console.log('[Wallet] Loading saved wallet:', savedAddress);
+          setAddress(savedAddress);
+        }
+      } catch (error) {
+        console.error('[Wallet] Failed to load saved wallet:', error);
+      }
+    };
+
+    loadSavedWallet();
+  }, []);
+
   const value = useMemo(
     () => ({
       address,
@@ -376,6 +393,9 @@ export function WalletProvider({ children }) {
           throw new Error('Invalid wallet address');
         }
 
+        // Save to AsyncStorage
+        await AsyncStorage.setItem(WALLET_ADDRESS_KEY, trimmedAddress);
+
         setAddress(trimmedAddress);
 
         if (options.syncToBackend) {
@@ -388,7 +408,10 @@ export function WalletProvider({ children }) {
 
         return trimmedAddress;
       },
-      disconnect: () => {
+      disconnect: async () => {
+        // Remove from AsyncStorage
+        await AsyncStorage.removeItem(WALLET_ADDRESS_KEY);
+        
         setAddress(null);
         setBalance(null);
         setUsdcBalance(0);

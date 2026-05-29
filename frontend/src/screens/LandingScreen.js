@@ -11,15 +11,21 @@ const buttons = [
   { label: 'I have a wallet', variant: 'secondary' },
 ];
 
-export default function LandingScreen({ onAuthenticated }) {
+export default function LandingScreen({ onAuthenticated, onNavigateToWalletInput }) {
   const [sheet, setSheet] = useState(null);
   const { width } = useWindowDimensions();
   const isCompact = width < 390;
   const markSize = isCompact ? 170 : 210;
 
-  // For demo build: bypass auth and go directly to wallet
-  const handleButtonPress = () => {
-    onAuthenticated?.();
+  // Handle button press based on which button was clicked
+  const handleButtonPress = (buttonLabel) => {
+    if (buttonLabel === 'I have a wallet') {
+      onNavigateToWalletInput?.();
+    } else {
+      // "Create Wallet" - for now, also go to wallet input
+      // In future, this could open a wallet creation flow
+      onNavigateToWalletInput?.();
+    }
   };
 
   const openSheet = (mode) => {
@@ -80,7 +86,7 @@ export default function LandingScreen({ onAuthenticated }) {
             {buttons.map((button) => (
               <Pressable
                 key={button.label}
-                onPress={handleButtonPress}
+                onPress={() => handleButtonPress(button.label)}
                 style={({ pressed }) => [
                   landingStyles.buttonBase,
                   button.variant === 'primary'
