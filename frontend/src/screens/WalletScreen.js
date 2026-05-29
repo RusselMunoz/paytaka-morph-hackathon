@@ -38,7 +38,8 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
     balanceChange,
     balanceChangePercent,
     isLoadingBalance,
-    refreshBalance
+    refreshBalance,
+    forceRefresh
   } = useWallet();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [primaryCurrency, setPrimaryCurrency] = useState('USD');
@@ -58,9 +59,22 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
   const onRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshBalance();
+      await forceRefresh();
     } catch (error) {
       console.error('Pull-to-refresh failed:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Handle manual refresh button
+  const handleManualRefresh = async () => {
+    console.log('[WalletScreen] Manual refresh button pressed');
+    setIsRefreshing(true);
+    try {
+      await forceRefresh();
+    } catch (error) {
+      console.error('Manual refresh failed:', error);
     } finally {
       setIsRefreshing(false);
     }
@@ -191,7 +205,23 @@ export default function WalletScreen({ onBackToLanding, onOpenChatbot, onOpenHis
         </View>
 
         <GlassBox style={walletStyles.balanceCard} contentStyle={walletStyles.balanceCardContent} vectorHeight={112}>
-          <Text style={walletStyles.cardLabel}>{address ? shortAddress(address) : `Total Balance (${primaryCurrency})`}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Text style={walletStyles.cardLabel}>{address ? shortAddress(address) : `Total Balance (${primaryCurrency})`}</Text>
+            <Pressable
+              onPress={handleManualRefresh}
+              disabled={isRefreshing}
+              style={{
+                padding: 8,
+                borderRadius: 8,
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                opacity: isRefreshing ? 0.5 : 1
+              }}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 16 }}>
+                {isRefreshing ? '⟳' : '↻'}
+              </Text>
+            </Pressable>
+          </View>
           {primaryCurrency === 'USD' ? (
             <>
               <Text style={walletStyles.balanceValue}>{totalBalance}</Text>

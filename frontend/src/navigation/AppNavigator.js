@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState, useEffect } from 'react';
 import ScreenTransition from '../components/ScreenTransition';
 import ScreenLoader from '../components/ScreenLoader';
-import { useAuth, useWallet } from '../contexts';
+import { useAuth } from '../contexts';
 
 const LandingScreen = lazy(() => import('../screens/LandingScreen'));
 const WalletScreen = lazy(() => import('../screens/WalletScreen'));
@@ -28,7 +28,8 @@ export default function AppNavigator() {
   const [activeScreen, setActiveScreen] = useState({ name: 'landing', params: {} });
   const [isDemoSessionLoaded, setIsDemoSessionLoaded] = useState(false);
   const { user, token } = useAuth();
-  const { address, connectWithAddress } = useWallet();
+  // Removed useWallet() call from here - it's not needed in AppNavigator
+  // WalletScreen will handle wallet connection internally
 
   // Auto-load demo session on app start
   useEffect(() => {
