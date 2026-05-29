@@ -224,16 +224,18 @@ export function WalletProvider({ children }) {
         },
       ]);
 
-      // Parse logs into transactions
+      // Parse logs into transactions with logIndex for uniqueness
       const txs = usdcLogs.slice(-20).map((log, idx) => {
         const from = '0x' + log.topics[1].slice(26);
         const to = '0x' + log.topics[2].slice(26);
         const value = hexToDecimal(log.data, 6);
         const isIncoming = to.toLowerCase() === targetAddress.toLowerCase();
+        const logIndex = log.logIndex ? parseInt(log.logIndex, 16) : idx;
 
         return {
-          id: log.transactionHash || `tx-${idx}`,
+          id: `${log.transactionHash}-${logIndex}`,
           hash: log.transactionHash,
+          logIndex,
           from,
           to,
           amount: value.toFixed(2),
@@ -244,7 +246,17 @@ export function WalletProvider({ children }) {
         };
       });
 
-      return txs.reverse();
+      // Deduplicate transactions by hash + logIndex
+      const unique = Array.from(
+        new Map(
+          txs.map(tx => [
+            `${tx.hash}-${tx.logIndex ?? 0}`,
+            tx
+          ])
+        ).values()
+      );
+
+      return unique.reverse();
     } catch (error) {
       console.error('Transaction history fetch failed:', error);
       return [];
