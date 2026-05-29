@@ -1,8 +1,26 @@
 import { Modal, Pressable, Text, View, StyleSheet, Alert } from 'react-native';
 import { BlurView } from 'expo-blur';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState, useEffect } from 'react';
 
-export default function SettingsDrawer({ visible, onClose, onSignOut }) {
+export default function SettingsDrawer({ visible, onClose, onSignOut, primaryCurrency, onCurrencyChange, onOpenContacts }) {
+  const [selectedCurrency, setSelectedCurrency] = useState(primaryCurrency || 'USD');
+
+  useEffect(() => {
+    setSelectedCurrency(primaryCurrency || 'USD');
+  }, [primaryCurrency]);
+
+  const handleCurrencyToggle = async (currency) => {
+    setSelectedCurrency(currency);
+    try {
+      await AsyncStorage.setItem('primaryCurrency', currency);
+      onCurrencyChange?.(currency);
+    } catch (error) {
+      console.error('Failed to save currency preference:', error);
+    }
+  };
   const menuItems = [
+    { icon: '👥', label: 'Contacts', action: 'contacts' },
     { icon: '⚙️', label: 'Settings', action: 'settings' },
     { icon: '🔒', label: 'Permissions', action: 'permissions' },
     { icon: 'ℹ️', label: 'About PayTaka', action: 'about' },
@@ -15,6 +33,11 @@ export default function SettingsDrawer({ visible, onClose, onSignOut }) {
       onClose();
       setTimeout(() => {
         onSignOut?.();
+      }, 300);
+    } else if (action === 'contacts') {
+      onClose();
+      setTimeout(() => {
+        onOpenContacts?.();
       }, 300);
     } else {
       Alert.alert('Coming Soon', `${action.charAt(0).toUpperCase() + action.slice(1)} feature is coming soon!`);
@@ -39,6 +62,42 @@ export default function SettingsDrawer({ visible, onClose, onSignOut }) {
             <Pressable onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </Pressable>
+          </View>
+
+          <View style={styles.currencySection}>
+            <Text style={styles.currencyLabel}>Primary Currency</Text>
+            <View style={styles.currencyToggle}>
+              <Pressable
+                style={[
+                  styles.currencyOption,
+                  styles.currencyOptionLeft,
+                  selectedCurrency === 'USD' && styles.currencyOptionActive,
+                ]}
+                onPress={() => handleCurrencyToggle('USD')}
+              >
+                <Text style={[
+                  styles.currencyOptionText,
+                  selectedCurrency === 'USD' && styles.currencyOptionTextActive,
+                ]}>
+                  USD
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.currencyOption,
+                  styles.currencyOptionRight,
+                  selectedCurrency === 'PHP' && styles.currencyOptionActive,
+                ]}
+                onPress={() => handleCurrencyToggle('PHP')}
+              >
+                <Text style={[
+                  styles.currencyOptionText,
+                  selectedCurrency === 'PHP' && styles.currencyOptionTextActive,
+                ]}>
+                  PHP
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.menuList}>
@@ -156,6 +215,52 @@ const styles = StyleSheet.create({
   },
   menuLabelDanger: {
     color: '#FF6B6B',
+  },
+  currencySection: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  currencyLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  currencyToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  currencyOption: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  currencyOptionLeft: {
+    marginRight: 2,
+  },
+  currencyOptionRight: {
+    marginLeft: 2,
+  },
+  currencyOptionActive: {
+    backgroundColor: '#8A2EF2',
+  },
+  currencyOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.5)',
+    letterSpacing: 0.5,
+  },
+  currencyOptionTextActive: {
+    color: '#FFFFFF',
   },
 });
 

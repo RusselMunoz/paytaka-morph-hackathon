@@ -77,7 +77,7 @@ export const remitStyles = StyleSheet.create({
   },
   remitTitle: {
     color: 'rgba(244, 233, 255, 0.86)',
-    fontSize: 13,
+    fontSize: 23,
     fontWeight: '700',
     marginBottom: 12,
     marginLeft: 4,
@@ -95,14 +95,14 @@ export const remitStyles = StyleSheet.create({
   },
   totalBalanceLabel: {
     color: 'rgba(232, 222, 244, 0.52)',
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '700',
     marginBottom: 4,
     letterSpacing: 0.2,
   },
   totalBalanceValue: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 30,
     lineHeight: 22,
     fontWeight: '800',
     letterSpacing: -0.2,
@@ -120,21 +120,21 @@ export const remitStyles = StyleSheet.create({
   },
   transferCardTitle: {
     color: 'rgba(228, 220, 240, 0.6)',
-    fontSize: 10,
+    fontSize: 16,
     fontWeight: '800',
     marginBottom: 8,
     letterSpacing: 0.3,
   },
   transferFieldLabel: {
     color: 'rgba(223, 214, 242, 0.62)',
-    fontSize: 9,
+    fontSize: 19,
     fontWeight: '800',
     marginTop: 4,
     marginBottom: 6,
     letterSpacing: 0.25,
   },
   tokenSelect: {
-    minHeight: 34,
+    minHeight: 70,
     borderRadius: 6,
     backgroundColor: '#6C6B71',
     paddingHorizontal: 10,
@@ -149,12 +149,12 @@ export const remitStyles = StyleSheet.create({
   },
   tokenSymbol: {
     color: '#F4F1F5',
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '800',
   },
   tokenBalance: {
     color: 'rgba(255,255,255,0.42)',
-    fontSize: 8,
+    fontSize: 14,
     marginTop: 1,
     fontWeight: '600',
   },
@@ -199,18 +199,18 @@ export const remitStyles = StyleSheet.create({
   },
   assetChipText: {
     color: '#FFFFFF',
-    fontSize: 8,
+    fontSize: 14,
     fontWeight: '800',
   },
   amountBlock: {
     marginBottom: 2,
   },
   amountInput: {
-    minHeight: 38,
+    minHeight: 60,
     borderRadius: 6,
     backgroundColor: '#6C6B71',
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 24,
     fontWeight: '700',
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -221,8 +221,8 @@ export const remitStyles = StyleSheet.create({
     marginTop: 6,
   },
   quickAmountChip: {
-    minHeight: 16,
-    minWidth: 34,
+    minHeight: 36,
+    minWidth: 56,
     paddingHorizontal: 8,
     borderRadius: 6,
     backgroundColor: '#7B797E',
@@ -231,7 +231,7 @@ export const remitStyles = StyleSheet.create({
   },
   quickAmountText: {
     color: '#FFFFFF',
-    fontSize: 8,
+    fontSize: 14,
     fontWeight: '700',
   },
   textField: {
@@ -239,7 +239,7 @@ export const remitStyles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#6C6B71',
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '600',
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -261,11 +261,11 @@ export const remitStyles = StyleSheet.create({
   },
   recipientChipText: {
     color: '#F8F5FB',
-    fontSize: 8,
+    fontSize: 14,
     fontWeight: '700',
   },
   sendButton: {
-    minHeight: 34,
+    minHeight: 60,
     borderRadius: 999,
     backgroundColor: '#808080',
     alignItems: 'center',
@@ -274,7 +274,7 @@ export const remitStyles = StyleSheet.create({
   },
   sendButtonText: {
     color: '#F9F7FA',
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '700',
   },
   bottomNav: {

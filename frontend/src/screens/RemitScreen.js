@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import GlassBox from '../components/GlassBox';
 import TabIcon from '../components/TabIcon';
 import BackgroundGradient from '../components/BackgroundGradient';
@@ -10,8 +11,9 @@ import { remittanceApi } from '../lib/api';
 import { useWallet, useAuth } from '../contexts';
 
 const quickAmounts = ['$25', '$50', '$100', '$500'];
-const savedContacts = ['Mom', 'Wife', 'Brother', 'Alex R.'];
+const defaultContacts = ['Mom', 'Wife', 'Brother', 'Alex R.'];
 const bottomTabs = ['Wallet', 'Remit', 'Scanner', 'History'];
+const CONTACTS_STORAGE_KEY = '@paytaka_contacts';
 
 export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, onOpenHistory, onOpenReceipt, onOpenScanner }) {
   const { user } = useAuth();
@@ -22,6 +24,7 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
   const [isSending, setIsSending] = useState(false);
   const [selectedToken, setSelectedToken] = useState('USDC');
   const [errorMessage, setErrorMessage] = useState('');
+  const [contacts, setContacts] = useState([]);
 
   const displayName = user?.displayName ?? 'User';
   const balanceValue = balance?.formatted ? Number(balance.formatted) : 0;
@@ -33,6 +36,27 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
     setRecipientId(prefill.recipientId ?? prefill.recipientName ?? '');
     setNote(prefill.memo ?? '');
   }, [prefill]);
+
+  // Load contacts from AsyncStorage
+  useEffect(() => {
+    const loadContacts = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
+        if (stored) {
+          const parsedContacts = JSON.parse(stored);
+          setContacts(parsedContacts);
+        }
+      } catch (error) {
+        console.error('Failed to load contacts:', error);
+      }
+    };
+    loadContacts();
+  }, []);
+
+  // Use saved contacts if available, otherwise use defaults
+  const displayContacts = contacts.length > 0
+    ? contacts.map(c => c.nickname)
+    : defaultContacts;
 
   const activeAsset = useMemo(
     () => {
@@ -59,7 +83,18 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
     setAmount(q.replace('$', ''));
   };
 
-  const pickRecipient = (r) => setRecipientId(r);
+  const pickRecipient = (nickname) => {
+    // If we have saved contacts, find the address
+    if (contacts.length > 0) {
+      const contact = contacts.find(c => c.nickname === nickname);
+      if (contact) {
+        setRecipientId(contact.address);
+        return;
+      }
+    }
+    // Otherwise just use the nickname
+    setRecipientId(nickname);
+  };
 
   const handleSend = async () => {
     if (!amount || Number(amount) <= 0) {
@@ -72,24 +107,37 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
       return;
     }
 
-    // Demo mode: simulate successful send
-    Alert.alert(
-      'Transfer Initiated',
-      `Sending $${amount} USDC to ${recipientId}. This is a demo - no real transaction occurred.`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Reset form
-            setAmount('');
-            setRecipientId('');
-            setNote('');
-            // Navigate back to wallet
-            onBackToWallet?.();
+    // Create transaction data for receipt
+    const transactionData = {
+      amount: Number(amount),
+      recipient: recipientId,
+      token: selectedToken,
+      txHash: '0x8f8a...9k2m',
+      timestamp: new Date().toISOString(),
+      memo: note,
+    };
+
+    // Navigate to receipt screen with transaction data
+    if (onOpenReceipt) {
+      onOpenReceipt(transactionData);
+    } else {
+      // Fallback: show alert if receipt screen not wired
+      Alert.alert(
+        'Payment Successful!',
+        `Sent $${amount} ${selectedToken} to ${recipientId}`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setAmount('');
+              setRecipientId('');
+              setNote('');
+              onBackToWallet?.();
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   return (
@@ -164,7 +212,7 @@ export default function RemitScreen({ prefill, onBackToWallet, onBackToLanding, 
           />
           
           <View style={remitStyles.recipientPillsRow}>
-            {savedContacts.map((contact) => (
+            {displayContacts.map((contact) => (
               <Pressable key={contact} onPress={() => pickRecipient(contact)} style={remitStyles.recipientChip}>
                 <Text style={remitStyles.recipientChipText}>{contact}</Text>
               </Pressable>

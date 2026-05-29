@@ -11,6 +11,7 @@ const ChatbotScreen = lazy(() => import('../screens/ChatbotScreen'));
 const HistoryScreen = lazy(() => import('../screens/HistoryScreen'));
 const ReceiptScreen = lazy(() => import('../screens/ReceiptScreen'));
 const AddFundsScreen = lazy(() => import('../screens/AddFundsScreen'));
+const ContactsScreen = lazy(() => import('../screens/ContactsScreen'));
 
 // Demo session data
 const DEMO_USER = {
@@ -21,7 +22,7 @@ const DEMO_USER = {
 };
 
 const DEMO_TOKEN = 'demo-token-for-testing';
-const DEMO_WALLET_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+const DEMO_WALLET_ADDRESS = '0x338442CEEd20F53f78b0A30223f7d6797e24ED48';
 
 export default function AppNavigator() {
   const [activeScreen, setActiveScreen] = useState({ name: 'landing', params: {} });
@@ -45,7 +46,13 @@ export default function AppNavigator() {
 
   let screen;
 
-  if (activeScreen.name === 'addFunds') {
+  if (activeScreen.name === 'contacts') {
+    screen = (
+      <ContactsScreen
+        onBack={() => openScreen('wallet')}
+      />
+    );
+  } else if (activeScreen.name === 'addFunds') {
     screen = (
       <AddFundsScreen
         onBack={() => openScreen('wallet')}
@@ -107,6 +114,7 @@ export default function AppNavigator() {
         onOpenScanner={() => openScreen('scanner')}
         onOpenReceipt={(remittance) => openScreen('receipt', { remittance })}
         onOpenAddFunds={() => openScreen('addFunds')}
+        onOpenContacts={() => openScreen('contacts')}
       />
     );
   } else {

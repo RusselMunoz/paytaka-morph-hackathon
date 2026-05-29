@@ -116,7 +116,7 @@ export const walletStyles = StyleSheet.create({
   },
   totalBalanceLabel: {
     color: 'rgba(232, 222, 244, 0.52)',
-    fontSize: 10,
+    fontSize: 20,
     fontWeight: '700',
     marginBottom: 4,
     letterSpacing: 0.2,
@@ -140,7 +140,7 @@ export const walletStyles = StyleSheet.create({
   },
   transferCardTitle: {
     color: 'rgba(228, 220, 240, 0.6)',
-    fontSize: 10,
+    fontSize: 20,
     fontWeight: '800',
     marginBottom: 8,
     letterSpacing: 0.3,
@@ -236,7 +236,7 @@ export const walletStyles = StyleSheet.create({
   },
   quickAmountText: {
     color: '#FFFFFF',
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: '700',
   },
   textField: {
@@ -284,26 +284,26 @@ export const walletStyles = StyleSheet.create({
   },
   cardLabel: {
     color: 'rgba(255,255,255,0.42)',
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
   },
   balanceValue: {
     color: '#FFFFFF',
-    fontSize: 31,
-    lineHeight: 35,
+    fontSize: 40,
+    lineHeight: 44,
     fontWeight: '800',
     letterSpacing: -0.4,
   },
   balanceDelta: {
     color: '#8AE06E',
-    fontSize: 9,
+    fontSize: 13,
     fontWeight: '700',
     marginTop: 4,
   },
   phpEquivalent: {
     color: 'rgba(255,255,255,0.50)',
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
     marginBottom: 10,
@@ -315,7 +315,7 @@ export const walletStyles = StyleSheet.create({
   },
   actionButtonPrimary: {
     flex: 1,
-    minHeight: 30,
+    minHeight: 28,
     borderRadius: 8,
     backgroundColor: '#4A3E56',
     alignItems: 'center',
@@ -325,7 +325,7 @@ export const walletStyles = StyleSheet.create({
   },
   actionButtonSecondary: {
     flex: 1,
-    minHeight: 30,
+    minHeight: 28,
     borderRadius: 8,
     backgroundColor: '#423647',
     alignItems: 'center',
@@ -335,7 +335,7 @@ export const walletStyles = StyleSheet.create({
   },
   actionButtonText: {
     color: '#D7D0DD',
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '600',
   },
   insightCard: {
@@ -356,9 +356,9 @@ export const walletStyles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   insightAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     backgroundColor: '#8A2EF2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -371,8 +371,8 @@ export const walletStyles = StyleSheet.create({
     lineHeight: 18,
   },
   takaAvatarIcon: {
-    width: 32,
-    height: 32,
+    width: 48,
+    height: 48,
   },
   insightBody: {
     flex: 1,
@@ -401,7 +401,7 @@ export const walletStyles = StyleSheet.create({
   chatButton: {
     alignSelf: 'flex-end',
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'right',
     justifyContent: 'center',
     gap: 6,
     marginTop: 12,
@@ -461,6 +461,9 @@ export const walletStyles = StyleSheet.create({
   assetBadgeTeal: {
     backgroundColor: '#20C5C3',
   },
+  assetBadgePurple: {
+    backgroundColor: '#7C3AED',
+  },
   assetBadgeText: {
     color: '#FFFFFF',
     fontSize: 13,
@@ -468,18 +471,18 @@ export const walletStyles = StyleSheet.create({
   },
   assetSymbol: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 16,
     fontWeight: '700',
   },
   assetName: {
     color: '#7D7881',
-    fontSize: 7,
+    fontSize: 16,
     marginTop: 1,
     fontWeight: '500',
   },
   assetBalance: {
     color: '#DCD7E2',
-    fontSize: 11,
+    fontSize: 16,
     fontWeight: '700',
   },
   floatingBot: {

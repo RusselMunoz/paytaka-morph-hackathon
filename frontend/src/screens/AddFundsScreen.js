@@ -13,7 +13,7 @@ const paymentMethods = [
   { id: 'crypto', label: 'Crypto Deposit', icon: '₿' },
 ];
 
-const DEMO_WALLET_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+const DEMO_WALLET_ADDRESS = '0x338442CEEd20F53f78b0A30223f7d6797e24ED48';
 
 export default function AddFundsScreen({ onBack }) {
   const { user } = useAuth();

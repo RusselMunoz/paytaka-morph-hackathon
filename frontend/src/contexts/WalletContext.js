@@ -7,7 +7,7 @@ import { MORPH_RPC_URL, MORPH_USDC_ADDRESS, MORPH_USDT_ADDRESS, MORPH_EXPLORER_U
 const WalletContext = createContext(null);
 
 // Demo wallet address
-const DEMO_WALLET_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+const DEMO_WALLET_ADDRESS = '0x338442CEEd20F53f78b0A30223f7d6797e24ED48';
 
 // ERC20 balanceOf function signature
 const BALANCE_OF_SIGNATURE = '0x70a08231';
@@ -213,6 +213,7 @@ export function WalletProvider({ children }) {
         usdc: usdcBal,
         usdt: usdtBal,
         native: nativeBal,
+        hodeth: nativeBal, // Expose as HodETH for display
         usdPhpRate: rate,
         change,
         changePercent,

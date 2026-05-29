@@ -17,7 +17,7 @@ Successfully integrated real Morph blockchain wallet functionality with minimal 
 - **USD/PHP Exchange Rate**: Live fetch from exchangerate-api.com with 56.5 fallback
 - **Balance Change Tracking**: Compares current vs previous balance stored in AsyncStorage
 - **Auto-refresh**: Fetches all data every 30 seconds automatically
-- **Demo Wallet**: `0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb`
+- **Demo Wallet**: `0x338442CEEd20F53f78b0A30223f7d6797e24ED48`
 - **Graceful Fallback**: Falls back to demo values only if ALL RPC calls fail
 
 ### Dependencies Added
@@ -146,7 +146,7 @@ Successfully integrated real Morph blockchain wallet functionality with minimal 
 - **Heavy blockchain focus**: All balance and transaction data now comes from real blockchain
 - **Minimal design changes**: Only 3 specific design fixes as requested
 - **Production ready**: Includes error handling, fallbacks, and performance optimizations
-- **Demo wallet**: Uses `0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb` for testing
+- **Demo wallet**: Uses `0x338442CEEd20F53f78b0A30223f7d6797e24ED48` for testing
 
 ## 8. Next Steps for Production
 
